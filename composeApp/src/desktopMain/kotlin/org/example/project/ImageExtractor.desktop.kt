@@ -12,7 +12,7 @@ import java.io.File
 import java.io.FileInputStream
 
 @OptIn(ExperimentalResourceApi::class)
-actual fun fileToBitmap(image: File?): ImageBitmap {
+actual fun fileToBitmap(image: File): ImageBitmap? {
 
     // Si no hay archivo, devolvemos el placeholder directamente
     if (image == null || !image.exists()) {

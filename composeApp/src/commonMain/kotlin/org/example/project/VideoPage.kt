@@ -261,7 +261,7 @@ fun VideoPage(viewModel: SharedViewModel) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Download")
+                                Text("Send to downloads")
                                 Spacer(Modifier.width(4.dp))
                                 Icon(Icons.Filled.Download, contentDescription = "Descargar")
                             }
