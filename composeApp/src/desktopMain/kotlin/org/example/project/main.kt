@@ -15,7 +15,8 @@ fun main() = application {
     Window(
         onCloseRequest = ::exitApplication,
         title = "QuickYTD",
-        state = windowState
+        state = windowState,
+        resizable = true
     ) {
         LaunchedEffect(Unit) {
             window.minimumSize = java.awt.Dimension(400, 700)

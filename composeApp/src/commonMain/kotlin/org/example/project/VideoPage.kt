@@ -7,6 +7,7 @@ import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +35,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,13 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-
+import java.awt.SystemColor.window
 
 
 val roboto = getRoboto()
@@ -108,7 +110,10 @@ fun VideoPage(viewModel: SharedViewModel) {
 
         Scaffold(
             containerColor = DarkTheme.backgroundColor,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer()
+                .background(DarkTheme.backgroundColor)
         ) {
 
             Box(
@@ -127,15 +132,17 @@ fun VideoPage(viewModel: SharedViewModel) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Spacer( Modifier.height(3.dp) )
-                        Image(
-                            bitmap = thumbnail,
-                            contentDescription = "TODO",
-                            modifier = Modifier
-                                .aspectRatio(16f/9f)
-                                .clip(RoundedCornerShape(16.dp))
-                                .fillMaxWidth(),
-                            alignment = Alignment.Center
-                        )
+                        if(thumbnail != null) {
+                            Image(
+                                bitmap = thumbnail                            ,
+                                contentDescription = "TODO",
+                                modifier = Modifier
+                                    .aspectRatio(16f/9f)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .fillMaxWidth(),
+                                alignment = Alignment.Center
+                            )
+                        }
 
                         Text(
                             text = videoName ?: "",
