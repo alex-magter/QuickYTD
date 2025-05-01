@@ -1,4 +1,4 @@
-rootProject.name = "Prueba"
+rootProject.name = "QuickYTD"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

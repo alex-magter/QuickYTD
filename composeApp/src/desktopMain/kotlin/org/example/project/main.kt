@@ -14,7 +14,7 @@ fun main() = application {
 
     Window(
         onCloseRequest = ::exitApplication,
-        title = "Youtube Downloader",
+        title = "QuickYTD",
         state = windowState
     ) {
         LaunchedEffect(Unit) {
