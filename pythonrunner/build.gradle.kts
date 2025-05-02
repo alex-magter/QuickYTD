@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.kotlinAndroid)
-    id("com.chaquo.python") version "16.0.0"
+    id("com.chaquo.python")
 }
 
 android {
@@ -18,6 +18,8 @@ android {
             // On Apple silicon, you can omit x86_64.
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
+
+
 
 
     }
@@ -48,4 +50,16 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+chaquopy {
+    defaultConfig {
+        pip {
+            install("pytubefix")
+            install("requests")
+            // Añade aquí otras dependencias que necesites
+        }
+    }
+    productFlavors { }
+    sourceSets { }
 }

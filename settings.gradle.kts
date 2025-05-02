@@ -11,6 +11,7 @@ pluginManagement {
             }
         }
         mavenCentral()
+        maven { url = uri("https://chaquo.com/maven") }
         gradlePluginPortal()
     }
 }
