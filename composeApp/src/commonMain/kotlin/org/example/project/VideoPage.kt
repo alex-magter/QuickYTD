@@ -114,11 +114,12 @@ fun VideoPage(viewModel: SharedViewModel) {
                 .fillMaxSize()
                 .graphicsLayer()
                 .background(DarkTheme.backgroundColor)
-        ) {
+        ) { innerPadding ->
 
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(innerPadding)
             ) {
                 Box(
                     modifier = Modifier

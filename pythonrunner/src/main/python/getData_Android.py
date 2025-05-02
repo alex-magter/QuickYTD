@@ -6,15 +6,11 @@ import csv
 import os
 
 # Create the folder that will contain the output files
-def prepareOutput():
-    temp_path = os.environ.get('TEMP')
-    os.chdir(temp_path)
-
-    os.path.join(temp_path, 'dataOutput')
-    if not os.path.exists('dataOutput'):
-        os.makedirs('dataOutput')
-
-    return os.path.abspath('dataOutput')
+def prepareOutput(context_path):  # Receive the context path from Kotlin
+    # Use the context path to create a directory in the app's internal storage
+    output_path = os.path.join(context_path, 'dataOutput')
+    os.makedirs(output_path, exist_ok=True)  # Create the directory if it doesn't exist
+    return os.path.abspath(output_path)
 
 # Simply convert the given value in bytes to MiB
 def byteToMb(value):
@@ -22,14 +18,14 @@ def byteToMb(value):
     return str(result) + "MiB"
 
 # Converts the video data given in list of lists to a csv file
-def listsToCsv(lists):
+def listsToCsv(lists, outputPath):
     with open(os.path.join(outputPath, "output.csv"), mode='w', newline='') as file:
         writer = csv.writer(file, delimiter=';')
 
         writer.writerows(lists)
 
 # Downloads the thumbnail of the video
-def downloadThumbnail(url):
+def downloadThumbnail(url, outputPath):
     yt = YouTube(url)
     video_id = yt.video_id
     thumbnail_url = f'https://img.youtube.com/vi/{video_id}/maxresdefault.jpg' # This is the path to yt thumbnails
@@ -42,7 +38,7 @@ def downloadThumbnail(url):
 
 # Save the name of the video and
 # the name of the channel to a txt file
-def getNameandChannel(url):
+def getNameandChannel(url, outputPath):
     # Get the names with the PyTube API...
     yt = YouTube(url)
     name = yt.title
@@ -61,7 +57,7 @@ def getNameandChannel(url):
 # and saves them to a list of lists to
 # convert them to a csv table:
 # Audio/Video | Extension | Resolution | Size
-def getData(url):
+def getData(url, outputPath):
     yt = YouTube(url)
     yt_streams = yt.streams
 
@@ -120,14 +116,11 @@ def getData(url):
             output.append(newRow)                                    # ... so we download the available one
 
 
-    listsToCsv(output) # And we convert the data to csv to use it in kotlin
+    listsToCsv(output, outputPath) # And we convert the data to csv to use it in kotlin
 
-
-# Gets the Url and calls the functions
-if __name__ == "__main__":
-    video_url = sys.argv[1]
-    outputPath = prepareOutput()
-    getData(video_url)
-    downloadThumbnail(video_url)
-    getNameandChannel(video_url)
-    print(outputPath)
+def startScript(video_url, context_path):
+    outputPath = prepareOutput(context_path)
+    getData(video_url, outputPath)
+    downloadThumbnail(video_url, outputPath)
+    getNameandChannel(video_url, outputPath)
+    return outputPath

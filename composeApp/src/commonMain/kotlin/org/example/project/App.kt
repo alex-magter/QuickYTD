@@ -39,6 +39,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHost
 import androidx.navigation.compose.NavHost
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
 
@@ -49,6 +51,7 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 @Composable
 @Preview
 fun App(navController: NavController, viewModel: SharedViewModel) {
+
     MaterialTheme {
         var link by remember { mutableStateOf("") }
         var theme = "Dark"
@@ -59,6 +62,8 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         val windowWidth = remember { mutableStateOf(700.dp) }
 
         val maxLinkLenght = 60
+
+        val scope = rememberCoroutineScope()
 
         Scaffold(
             containerColor = DarkTheme.backgroundColor,  // Color de fondo del Scaffold
@@ -93,9 +98,18 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                         isLinkInvalid = !result
                         if (result) {
                             isGettingData = true
-                            getData(link) { data ->
-                                viewModel.videoData = data
-                                navController.navigate("VideoPage")
+
+                            scope.launch {
+                                if(isAndroid()){
+                                    delay(350)
+                                } else {
+                                    delay(0)
+                                }
+
+                                getData(link) { data ->
+                                    viewModel.videoData = data
+                                    navController.navigate("VideoPage")
+                                }
                             }
                         }
                     }

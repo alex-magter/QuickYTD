@@ -10,7 +10,3 @@ def checkVideo(url):
     except Exception as e:
         print("invalid")
         return False
-
- 
-video_url = sys.argv[1]
-checkVideo(video_url)
