@@ -1,0 +1,237 @@
+package QuickYTD
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+import org.jetbrains.compose.ui.tooling.preview.Preview
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+@Preview
+fun App() {
+    MaterialTheme {
+        var link by remember { mutableStateOf("") }
+        var theme = "Dark"
+
+        val density = LocalDensity.current
+        val windowWidth = remember { mutableStateOf(900.dp) }
+
+
+        LaunchedEffect(density) {
+            windowWidth.value = with(density) { 900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
+                (windowWidth.value.value * 2f).dp
+            )}
+        }
+
+
+
+
+        Scaffold(
+            containerColor = DarkTheme.backgroundColor
+        ) {
+
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            )
+            {
+                OutlinedTextField(
+                    value = link,
+                    onValueChange = { link = it },
+                    textStyle = TextStyle(color = Color.White),
+                    shape = RoundedCornerShape(50.dp), // Redondeado completamente
+                    colors = DarkTheme.textFieldColors(),
+                    modifier = Modifier.width(windowWidth.value),
+                    placeholder = { Text("Introduce el link", color = Color.Gray) }
+                )
+
+                ResolutionDropdownMenu()
+
+                Button(onClick = { getData(link = link){
+                                    data -> resolutions = data
+                                    } }) {
+                    Text("Buscar")
+                }
+
+
+
+            }
+        }
+    }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ResolutionDropdownMenu() {
+    val typeOfFile = listOf("Audio", "Video")
+    val videoFormats = listOf("mp4", "webm")
+
+    var expanded by remember { mutableStateOf(false) }
+
+    var selectedType by remember { mutableStateOf("Elige") }
+    var selectedExtension by remember { mutableStateOf("Elige extensión") }
+    var selectedResolution by remember { mutableStateOf("Elige resolución") } // Valor inicial
+
+    val density = LocalDensity.current
+    val windowWidth = remember { mutableStateOf(900.dp) }
+
+    var expandedFirst by remember { mutableStateOf(false) }
+    var expandedSecond by remember { mutableStateOf(false) }
+    var expandedThird by remember { mutableStateOf(false) }
+
+    LaunchedEffect(density) {
+        windowWidth.value = with(density) { 900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
+            (windowWidth.value.value * 0.95f).dp
+        )}
+    }
+
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        modifier = Modifier.width(windowWidth.value),
+
+    ){
+        ExposedDropdownMenuBox(
+            expanded = expandedFirst,
+            modifier = Modifier.weight(1f),
+            onExpandedChange = { expandedFirst = !expandedFirst }
+
+        ) {
+            OutlinedTextField(
+                value = selectedResolution,
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier
+                    .menuAnchor()
+                    .padding(16.dp),
+
+                label = { Text("Tipo de contenido") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = DarkTheme.textFieldColors(),
+                shape = RoundedCornerShape(50.dp)
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                resolutions.forEach { resolution ->
+                    DropdownMenuItem(
+                        text = { Text(resolution) },
+                        onClick = {
+                            selectedResolution = resolution
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        /*AnimatedVisibility(
+            visible = expandedFirst, // Solo se muestra si hay algo seleccionado
+            enter = slideInHorizontally(initialOffsetX = { it / 2 }) + fadeIn(),
+            exit = slideOutHorizontally(targetOffsetX = { it / 2 }) + fadeOut()
+        ) {*/
+            Row(
+                modifier = Modifier.weight(2f),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = selectedResolution,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .menuAnchor()
+                            .padding(16.dp),
+                        label = { Text("Formato") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = DarkTheme.textFieldColors(),
+                        shape = RoundedCornerShape(50.dp)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        resolutions.forEach { resolution ->
+                            DropdownMenuItem(
+                                text = { Text(resolution) },
+                                onClick = {
+                                    selectedResolution = resolution
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded },
+                    modifier = Modifier.weight(1f)
+                ) {
+                    OutlinedTextField(
+                        value = selectedResolution,
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier
+                            .menuAnchor()
+                            .padding(16.dp),
+                        label = { Text("Resolución") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        colors = DarkTheme.textFieldColors(),
+                        shape = RoundedCornerShape(50.dp)
+                    )
+
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        resolutions.forEach { resolution ->
+                            DropdownMenuItem(
+                                text = { Text(resolution) },
+                                onClick = {
+                                    selectedResolution = resolution
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+           // }
+
+
+
+
+    }
+}
+
