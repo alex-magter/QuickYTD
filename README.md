@@ -1,1 +1,1 @@
-# QuickYTD
+# QuickYTD (Quick YouTube Downloader)
