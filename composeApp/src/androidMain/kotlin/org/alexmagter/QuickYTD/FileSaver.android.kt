@@ -12,22 +12,24 @@ actual class FileSaver (private val activity: ComponentActivity){
         return downloadsDir.absolutePath
     }
 
+    var continuation: CompletableDeferred<OutputStream?>? = null
+
+    val createDocumentLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.CreateDocument("*/*")
+    ) { uri ->
+        val output = uri?.let {
+            activity.contentResolver.openOutputStream(it)
+        }
+        continuation?.complete(output)
+        continuation = null
+    }
+
     actual suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String,
         onResult: (OutputStream?) -> Unit
     ) {
-        var continuation: CompletableDeferred<OutputStream?>? = null
 
-        val createDocumentLauncher = activity.registerForActivityResult(
-            ActivityResultContracts.CreateDocument(mimeType)
-        ) { uri ->
-            val output = uri?.let {
-                activity.contentResolver.openOutputStream(it)
-            }
-            continuation?.complete(output)
-            continuation = null
-        }
 
         continuation = CompletableDeferred()
         createDocumentLauncher.launch(suggestedFileName)

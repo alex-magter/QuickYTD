@@ -7,11 +7,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
+
+    private lateinit var fileSaver: FileSaver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        fileSaver = FileSaver(this)
+
         setContent {
-            Navigation(FileSaver(this))
+            Navigation(fileSaver)
         }
     }
 }
