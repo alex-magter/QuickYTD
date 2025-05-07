@@ -22,6 +22,6 @@ fun main() = application {
             window.minimumSize = java.awt.Dimension(400, 700)
         }
 
-        Navigation()
+        Navigation(FileSaver())
     }
 }

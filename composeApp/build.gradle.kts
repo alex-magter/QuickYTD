@@ -92,7 +92,7 @@ dependencies {
     implementation(libs.androidx.media3.exoplayer)
 
 
-    debugImplementation(compose.uiTooling)
+    //debugImplementation(compose.uiTooling)
 }
 
 compose.desktop {

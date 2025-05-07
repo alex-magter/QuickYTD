@@ -11,7 +11,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         setContent {
-            Navigation()
+            Navigation(FileSaver(this))
         }
     }
 }
@@ -19,5 +19,7 @@ class MainActivity : ComponentActivity() {
 @Preview
 @Composable
 fun AppAndroidPreview() {
-    Navigation()
+    Navigation(
+        fileSaver = TODO()
+    )
 }

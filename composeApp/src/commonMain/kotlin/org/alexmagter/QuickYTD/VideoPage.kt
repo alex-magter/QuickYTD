@@ -64,7 +64,7 @@ val roboto = getRoboto()
 )
 @Preview
 @Composable
-fun VideoPage(viewModel: SharedViewModel) {
+fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
     val videoData = viewModel.videoData
     val link = videoData.link
@@ -96,6 +96,8 @@ fun VideoPage(viewModel: SharedViewModel) {
 
         var progress by remember { mutableStateOf<String?>("") }
         var isDownloading by remember { mutableStateOf(false) }
+
+        var isChoosingPath by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
             windowWidth.value = with(density) {
@@ -254,7 +256,7 @@ fun VideoPage(viewModel: SharedViewModel) {
                                     )
                                 }*/
                             },
-                            enabled = selectedResolution != "",
+                            enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
                             modifier = Modifier
                                 .weight(1f)
@@ -274,25 +276,21 @@ fun VideoPage(viewModel: SharedViewModel) {
 
                         val scope = rememberCoroutineScope()
                         Button(
-                            onClick = {
-                                scope.launch {
-                                    selectFolder(videoName + "." + selectedExtension, "audio/mp4") {
-                                        if(it != null){
-                                            download(
-                                                link = link,
-                                                downloadPath = it,
-                                                type = selectedType,
-                                                extension = selectedExtension,
-                                                resolution = selectedResolution,
-                                                onProgressChange = {
 
-                                                }
-                                            )
+                            onClick = {
+                                isChoosingPath = true
+
+                                scope.launch {
+                                    fileSaver.selectFolder("$videoName.$selectedExtension", "audio/mp4") {
+                                        isChoosingPath = false
+                                        println(it)
+                                        if(it != null){
+
                                         }
                                     }
                                 }
                             },
-                            enabled = selectedResolution != "",
+                            enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
                             modifier = Modifier
                                 .weight(1f)

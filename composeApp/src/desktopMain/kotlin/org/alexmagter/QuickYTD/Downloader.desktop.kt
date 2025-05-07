@@ -6,6 +6,7 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
 import kotlinx.coroutines.*
+import java.io.OutputStream
 
 
 actual fun checkVideo(link: String, onResult: (Boolean) -> Unit){
@@ -57,6 +58,17 @@ actual fun download(
     CoroutineScope(Dispatchers.IO).launch {
         val output = runPyScriptFromResInRealTime("download.py", listOf(link, type, extension, resolution), onProgressChange)
     }
+}
+
+
+actual fun download(
+    link: String,
+    downloadPath: OutputStream,
+    type: String,
+    extension: String,
+    resolution: String,
+    onProgressChange: (String?) -> Unit
+) {
 }
 
 fun extractScriptFromRes(fileName: String): File? {

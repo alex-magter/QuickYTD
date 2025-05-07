@@ -8,6 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.OutputStream
 
 val context = MainApplication.instance
 
@@ -31,6 +32,16 @@ actual fun checkVideo(link: String, onResult: (Boolean) -> Unit){
 actual fun download(
     link: String,
     downloadPath: String,
+    type: String,
+    extension: String,
+    resolution: String,
+    onProgressChange: (String?) -> Unit
+) {
+}
+
+actual fun download(
+    link: String,
+    downloadPath: OutputStream,
     type: String,
     extension: String,
     resolution: String,
