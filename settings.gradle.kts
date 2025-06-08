@@ -15,6 +15,7 @@ pluginManagement {
         maven { url = uri("https://chaquo.com/maven") }
         maven{ url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
         gradlePluginPortal()
+        google()
     }
 }
 

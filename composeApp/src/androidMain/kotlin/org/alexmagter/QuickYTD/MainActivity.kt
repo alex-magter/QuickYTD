@@ -5,8 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
+import com.chaquo.python.Python
+import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity : ComponentActivity() {
+
 
     private lateinit var fileSaver: FileSaver
 
@@ -14,6 +17,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         fileSaver = FileSaver(this)
+
 
         setContent {
             Navigation(fileSaver)

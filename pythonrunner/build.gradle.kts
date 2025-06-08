@@ -59,6 +59,8 @@ chaquopy {
             install("requests")
             // Añade aquí otras dependencias que necesites
         }
+
+        version = "3.12"
     }
     productFlavors { }
     sourceSets { }

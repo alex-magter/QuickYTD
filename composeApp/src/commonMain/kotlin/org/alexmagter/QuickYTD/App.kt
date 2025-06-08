@@ -77,7 +77,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     modifier = Modifier
                         .width(windowWidth.value)
                         .padding(8.dp, 0.dp),
-                    placeholder = { Text("Introduce el link", color = Color.Gray) },
+                    placeholder = { Text("Enter the link here", color = Color.Gray) },
                 )
 
                 Button(onClick = {

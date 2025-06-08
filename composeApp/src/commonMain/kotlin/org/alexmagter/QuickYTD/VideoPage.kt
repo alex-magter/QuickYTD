@@ -1,8 +1,12 @@
 package org.alexmagter.QuickYTD
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -21,9 +25,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material3.Button
@@ -32,7 +38,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -52,6 +60,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.coerceAtMost
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
 
@@ -94,7 +104,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
         var isVertical by remember { mutableStateOf(false) }
 
-        var progress by remember { mutableStateOf<String?>("") }
+        var progress by remember { mutableStateOf<Float>(0f) }
         var isDownloading by remember { mutableStateOf(false) }
 
         var isChoosingPath by remember { mutableStateOf(false) }
@@ -114,6 +124,14 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 .graphicsLayer()
                 .background(DarkTheme.backgroundColor)
         ) { innerPadding ->
+
+
+            DownloadWindow(downloading = isDownloading,
+                label = "Downloading",
+                progress = 0.5f
+            ){
+                isDownloading = false
+            }
 
             Box(
                 modifier = Modifier
@@ -223,14 +241,6 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                             size = videoSize,
                             areFieldsFilled = selectedResolution != ""
                         )
-
-                        DownloadProgress(
-                            label = "Download progress",
-                            progress = progress,
-                            isDownloading = isDownloading
-                        )
-
-
                     }
 
                     Row(
@@ -255,6 +265,8 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                         }
                                     )
                                 }*/
+                                isDownloading = true
+                                progress = 0f
                             },
                             enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
@@ -285,7 +297,8 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                         isChoosingPath = false
                                         println(it)
                                         if(it != null){
-
+                                            isDownloading = true
+                                            progress = 0f
                                         }
                                     }
                                 }
@@ -388,57 +401,57 @@ fun DownloadProgress(label: String?, progress: String?, isDownloading: Boolean) 
 }
 
 @Composable
-fun DownloadWindow(label: String?, progress: Float){
-    Dialog(
-        onDismissRequest = { }
-    ){
-        Box(
-            modifier = Modifier
-                .background(DarkTheme.backgroundColor, shape = DarkTheme.dropdownShape)
-                .padding(16.dp)
-                .width(300.dp)
-                .height(200.dp)
-
-        ) {
-
-            Column (
+fun DownloadWindow(downloading: Boolean = false, label: String?, progress: Float, onCancelDownload: () -> Unit = {}){
+    if(downloading){
+        Dialog(
+            onDismissRequest = { }
+        ){
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .background(DarkTheme.backgroundColor, shape = DarkTheme.dropdownShape)
+                    .padding(16.dp)
+                    .width(300.dp)
+                    .height(200.dp)
+
             ) {
-                Text("$label...", color = Color.White)
-                Spacer(Modifier.height(20.dp))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier.fillMaxWidth(),
 
-                    )
-
-                Spacer(Modifier.weight(1f))
-                Button(
-                    onClick = { },
-                    enabled = true,
-                    colors = DarkTheme.ButtonColors(true),
+                Column (
                     modifier = Modifier
-                        .width(150.dp)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = PaddingValues(1.dp)
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
+                    Text("$label...", color = Color.White)
+                    Spacer(Modifier.height(20.dp))
+                    LinearProgressIndicator(
+                        progress = { progress },
+                        modifier = Modifier.fillMaxWidth(),
 
-                        ) {
-                        Text("Cancel")
-                        Spacer(Modifier.width(4.dp))
-                        Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                        )
+
+                    Spacer(Modifier.weight(1f))
+                    Button(
+                        onClick = { onCancelDownload() },
+                        enabled = true,
+                        colors = DarkTheme.ButtonColors(true),
+                        modifier = Modifier
+                            .width(150.dp)
+                            .height(50.dp),
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center,
+
+                            ) {
+                            Text("Cancel")
+                            Spacer(Modifier.width(4.dp))
+                            Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                        }
                     }
                 }
             }
-
-
         }
     }
 }
