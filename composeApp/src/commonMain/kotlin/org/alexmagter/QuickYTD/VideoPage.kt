@@ -386,3 +386,60 @@ fun DownloadProgress(label: String?, progress: String?, isDownloading: Boolean) 
         )
     }
 }
+
+@Composable
+fun DownloadWindow(label: String?, progress: Float){
+    Dialog(
+        onDismissRequest = { }
+    ){
+        Box(
+            modifier = Modifier
+                .background(DarkTheme.backgroundColor, shape = DarkTheme.dropdownShape)
+                .padding(16.dp)
+                .width(300.dp)
+                .height(200.dp)
+
+        ) {
+
+            Column (
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("$label...", color = Color.White)
+                Spacer(Modifier.height(20.dp))
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+
+                    )
+
+                Spacer(Modifier.weight(1f))
+                Button(
+                    onClick = { },
+                    enabled = true,
+                    colors = DarkTheme.ButtonColors(true),
+                    modifier = Modifier
+                        .width(150.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(1.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+
+                        ) {
+                        Text("Cancel")
+                        Spacer(Modifier.width(4.dp))
+                        Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                    }
+                }
+            }
+
+
+        }
+    }
+}
+
