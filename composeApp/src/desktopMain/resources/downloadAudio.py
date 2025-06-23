@@ -1,19 +1,17 @@
 import sys
+import re
 
 from pytubefix import YouTube
-import re
 
 
 def on_progress(stream, chunk, bytes_remaining):
-
     total_size = stream.filesize
     bytes_downloaded = total_size - bytes_remaining
 
     progress = (bytes_downloaded / total_size) * 100
-    print(progress/100, flush=True)
+    print(progress, end='\n', flush=True)
 
-
-def downloadAudio(url, ext, res, pathToDownload, callbackOnProgress):
+def downloadAudio(url, ext, res, pathToDownload):
 
     extension = "mp4" if ext == 'm4a' else 'webm'
     yt = YouTube(url,
@@ -23,32 +21,18 @@ def downloadAudio(url, ext, res, pathToDownload, callbackOnProgress):
     title = yt.title
     cleanTitle = re.sub(r'[<>:"/\\|?*\n¿]', '', title)
 
-    print("Vamos a descargar...")
-
     try:
-
         streams.first().download(output_path=pathToDownload, filename=f"{cleanTitle}.m4a")
 
     except Exception as e:
         print(e)
 
-def downloadVideo(url, ext, res):
-    yt = YouTube(url)
-
 
 if __name__ == "__main__":
     video_url = sys.argv[1]
-    content_type = sys.argv[2]
-    extension = sys.argv[3]
-    resolution = sys.argv[4]
+    extension = sys.argv[2]
+    resolution = sys.argv[3]
+    folderToSave = sys.argv[4]
 
-    print(f"content {content_type}")
-    print(f"content {extension}")
-    print(f"content {resolution}")
-
-    if(content_type == 'video'):
-        downloadVideo(video_url, extension, resolution)
-
-    else:
-        downloadAudio(video_url, extension, resolution)
+    downloadAudio(video_url, extension, resolution, folderToSave)
 

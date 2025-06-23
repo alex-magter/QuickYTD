@@ -128,7 +128,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
             DownloadWindow(downloading = isDownloading,
                 label = "Downloading",
-                progress = 0.5f
+                progress = progress
             ){
                 isDownloading = false
             }
@@ -253,20 +253,22 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                     ) {
                         Button(
                             onClick = {
-                                /*if (videoData != null) {
-                                    isDownloading = true
-                                    download(
-                                        link = videoData.link,
-                                        type = selectedType,
-                                        extension = selectedExtension,
-                                        resolution = selectedResolution,
-                                        onProgressChange = {
-                                            progress = it
-                                        }
-                                    )
-                                }*/
                                 isDownloading = true
                                 progress = 0f
+
+                                download(
+                                    link = link,
+                                    downloadPath = fileSaver.getDownloadsFolder(),
+                                    type = selectedType,
+                                    extension = selectedExtension,
+                                    resolution = selectedResolution,
+                                    onProgressChange = {
+                                        if(it != null){
+                                            progress = it/100;
+                                            print(it/100); print("\n")
+                                        }
+                                    }
+                                )
                             },
                             enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
@@ -293,12 +295,28 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 isChoosingPath = true
 
                                 scope.launch {
-                                    fileSaver.selectFolder("$videoName.$selectedExtension", "audio/mp4") {
+                                    fileSaver.selectFolder("$videoName.$selectedExtension", "audio/mp4") { stream, path ->
                                         isChoosingPath = false
-                                        println(it)
-                                        if(it != null){
+                                        println(path)
+                                        if(path != null){
                                             isDownloading = true
                                             progress = 0f
+
+                                            println(path)
+
+                                            download(
+                                                link = link,
+                                                downloadPath = path,
+                                                type = selectedType,
+                                                extension = selectedExtension,
+                                                resolution = selectedResolution,
+                                                onProgressChange = {
+                                                    if(it != null){
+                                                        progress = it/100;
+                                                        print(it/100); print("\n")
+                                                    }
+                                                }
+                                            )
                                         }
                                     }
                                 }
@@ -350,6 +368,7 @@ fun Dropdown(label: String, elements: List<String>, selectedValue: String, onVal
             colors = DarkTheme.textFieldColors(),
             shape = DarkTheme.dropdownShape
         )
+
 
         ExposedDropdownMenu(
             expanded = expanded,
@@ -404,7 +423,7 @@ fun DownloadProgress(label: String?, progress: String?, isDownloading: Boolean) 
 fun DownloadWindow(downloading: Boolean = false, label: String?, progress: Float, onCancelDownload: () -> Unit = {}){
     if(downloading){
         Dialog(
-            onDismissRequest = { }
+            onDismissRequest = {  }
         ){
             Box(
                 modifier = Modifier

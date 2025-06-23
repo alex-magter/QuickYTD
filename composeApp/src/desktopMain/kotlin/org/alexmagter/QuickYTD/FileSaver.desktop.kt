@@ -18,17 +18,19 @@ actual class FileSaver {
     actual suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String,
-        onResult: (OutputStream?) -> Unit
+        onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     ) {
         withContext(Dispatchers.IO) {
             val chooser = JFileChooser()
             chooser.selectedFile = File(suggestedFileName)
             val result = chooser.showSaveDialog(null)
-            val selectedPath = if (result == JFileChooser.APPROVE_OPTION) {
+            val stream = if (result == JFileChooser.APPROVE_OPTION) {
                 FileOutputStream(chooser.selectedFile)
             } else null
 
-            onResult(selectedPath)
+            val filePath = chooser.selectedFile.absolutePath
+
+            onResult(stream, File(filePath).parent)
         }
     }
 

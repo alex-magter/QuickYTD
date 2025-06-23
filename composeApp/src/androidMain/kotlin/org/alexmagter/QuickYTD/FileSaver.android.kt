@@ -1,5 +1,6 @@
 package org.alexmagter.QuickYTD
 
+import android.net.Uri
 import android.os.Environment
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,13 +28,22 @@ actual class FileSaver (private val activity: ComponentActivity){
     actual suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String,
-        onResult: (OutputStream?) -> Unit
+        onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     ) {
 
+        val uri = CompletableDeferred<Uri?>()
 
         continuation = CompletableDeferred()
+
         createDocumentLauncher.launch(suggestedFileName)
+
+        val selectedUri = uri.await()
+
+        val outputStream = selectedUri?.let {
+            context.contentResolver.openOutputStream(it)
+        }
+
         val output = continuation?.await()
-        onResult(output)
+        onResult(output, uri.toString())
     }
 }

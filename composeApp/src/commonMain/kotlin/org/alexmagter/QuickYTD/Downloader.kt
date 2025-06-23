@@ -9,7 +9,7 @@ expect fun download(
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (String?) -> Unit
+    onProgressChange: (Float?) -> Unit
 )
 
 expect fun download(
@@ -22,6 +22,6 @@ expect fun download(
 )
 
 
-expect fun getData(link: String, onResult: (VideoData) -> Unit)
+expect fun getData(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (VideoData) -> Unit = {})
 
-expect fun checkVideo(link: String, onResult: (Boolean) -> Unit)
+expect fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (Boolean) -> Unit = {})

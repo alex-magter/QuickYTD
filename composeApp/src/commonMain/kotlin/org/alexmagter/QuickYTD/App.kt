@@ -44,6 +44,8 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         var theme = "Dark"
         var isLinkInvalid by remember { mutableStateOf(false) }
         var isGettingData by remember { mutableStateOf(false) }
+        var hadErrorGettingVideo by remember { mutableStateOf(false) }
+        var error: String = ""
 
         val density = LocalDensity.current
         val windowWidth = remember { mutableStateOf(700.dp) }
@@ -51,6 +53,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         val maxLinkLenght = 60
 
         val scope = rememberCoroutineScope()
+
 
         Scaffold(
             containerColor = DarkTheme.backgroundColor,  // Color de fondo del Scaffold
@@ -81,7 +84,13 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                 )
 
                 Button(onClick = {
-                    checkVideo(link = link) { result ->
+                    checkVideo(
+                        link = link,
+                        ifErrorOccurred = {
+                            hadErrorGettingVideo = true
+                            error = it.toString()
+                        }
+                        ) { result ->
                         isLinkInvalid = !result
                         if (result) {
                             isGettingData = true
@@ -106,6 +115,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
 
                 LoadingText(isGettingData)
                 NoValidLinkWarning(!isLinkInvalid)
+                ErrorWarning(hadErrorGettingVideo, error)
             }
         }
     }
@@ -134,6 +144,20 @@ fun NoValidLinkWarning(valid: Boolean) {
     ) {
         Text(
             text = "El link no es válido",
+            color = Color.Red
+        )
+    }
+}
+
+@Composable
+fun ErrorWarning(hadError: Boolean, error: String) {
+    AnimatedVisibility(
+        visible = hadError,
+        enter = slideInVertically(initialOffsetY = { -40 }) + expandIn(expandFrom = Alignment.Center),
+        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
+    ) {
+        Text(
+            text = "Error searching video: $error",
             color = Color.Red
         )
     }

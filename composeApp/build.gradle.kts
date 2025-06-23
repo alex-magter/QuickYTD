@@ -101,8 +101,31 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "org.alexmagter.QuickYTD"
-            packageVersion = "1.0.0"
+            packageName = "QuickYTD"
+            packageVersion = "1.2.0"
+            vendor = "Alex_magter"
+
+            windows {
+                // Esta es la propiedad válida para Windows
+                menuGroup = "AlexMagter"
+                // Opcional: define nombre del acceso directo
+                shortcut = true
+
+                // iconFile.set(...)
+            }
+
+            macOS {
+                bundleID = "com.miempresa.miapp"
+                // iconFile.set(...)
+            }
+
+            linux {
+                // iconFile.set(...)
+            }
+
+
+
+
         }
     }
 }

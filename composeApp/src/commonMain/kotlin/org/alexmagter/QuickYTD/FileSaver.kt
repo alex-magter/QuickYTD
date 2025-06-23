@@ -9,6 +9,6 @@ expect class FileSaver {
     suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String = "*/*",
-        onResult: (OutputStream?) -> Unit
+        onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     )
 }
