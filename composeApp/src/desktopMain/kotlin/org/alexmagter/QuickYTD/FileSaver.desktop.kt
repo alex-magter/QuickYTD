@@ -20,9 +20,12 @@ actual class FileSaver {
         mimeType: String,
         onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     ) {
+
         withContext(Dispatchers.IO) {
+            val cleanedName = clearName(suggestedFileName)
+
             val chooser = JFileChooser()
-            chooser.selectedFile = File(suggestedFileName)
+            chooser.selectedFile = File(cleanedName)
             val result = chooser.showSaveDialog(null)
             val stream = if (result == JFileChooser.APPROVE_OPTION) {
                 FileOutputStream(chooser.selectedFile)

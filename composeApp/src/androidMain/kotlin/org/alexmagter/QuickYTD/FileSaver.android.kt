@@ -31,11 +31,13 @@ actual class FileSaver (private val activity: ComponentActivity){
         onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     ) {
 
+        val cleanedName = clearName(suggestedFileName)
+
         val uri = CompletableDeferred<Uri?>()
 
         continuation = CompletableDeferred()
 
-        createDocumentLauncher.launch(suggestedFileName)
+        createDocumentLauncher.launch(cleanedName)
 
         val selectedUri = uri.await()
 

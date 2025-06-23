@@ -12,3 +12,8 @@ expect class FileSaver {
         onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
     )
 }
+
+fun clearName(name: String): String{
+    val prohibitedCharacters = "[\\\\/:*?\"<>|]"
+    return name.replace(Regex(prohibitedCharacters), "")
+}
