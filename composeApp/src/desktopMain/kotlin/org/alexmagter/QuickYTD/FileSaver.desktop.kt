@@ -8,6 +8,7 @@ import java.io.OutputStream
 import java.lang.System.getProperty
 import java.nio.file.Paths
 import javax.swing.JFileChooser
+import javax.swing.filechooser.FileNameExtensionFilter
 
 actual class FileSaver {
     actual fun getDownloadsFolder(): String {
@@ -18,10 +19,12 @@ actual class FileSaver {
     actual suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String,
-        onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
+        onResult: (outputStream: OutputStream?, pathOrUri: String?, filename: String?) -> Unit
     ) {
         withContext(Dispatchers.IO) {
             val chooser = JFileChooser()
+            val filter = FileNameExtensionFilter("M4A audio files", "m4a")
+            chooser.fileFilter = filter
             chooser.selectedFile = File(suggestedFileName)
             val result = chooser.showSaveDialog(null)
             val stream = if (result == JFileChooser.APPROVE_OPTION) {
@@ -30,7 +33,7 @@ actual class FileSaver {
 
             val filePath = chooser.selectedFile.absolutePath
 
-            onResult(stream, File(filePath).parent)
+            onResult(stream, File(filePath).parent, File(filePath).name)
         }
     }
 

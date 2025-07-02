@@ -109,6 +109,8 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
         var isChoosingPath by remember { mutableStateOf(false) }
 
+        var downloadTask by remember { mutableStateOf("") }
+
         LaunchedEffect(density) {
             windowWidth.value = with(density) {
                 900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
@@ -127,7 +129,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
 
             DownloadWindow(downloading = isDownloading,
-                label = "Downloading",
+                label = downloadTask,
                 progress = progress
             ){
                 isDownloading = false
@@ -256,17 +258,21 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 isDownloading = true
                                 progress = 0f
 
+                                val name = videoName
+
                                 download(
                                     link = link,
                                     downloadPath = fileSaver.getDownloadsFolder(),
+                                    filename = name,
                                     type = selectedType,
                                     extension = selectedExtension,
                                     resolution = selectedResolution,
-                                    onProgressChange = {
-                                        if(it != null){
-                                            progress = it/100;
-                                            print(it/100); print("\n")
-                                        }
+                                    savedAs = false,
+                                    onResult = {},
+                                    onProgressChange = { taskProgress, task ->
+                                        progress = taskProgress/100;
+                                        print(progress/100); print("\n")
+                                        downloadTask = task
                                     }
                                 )
                             },
@@ -295,10 +301,11 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 isChoosingPath = true
 
                                 scope.launch {
-                                    fileSaver.selectFolder("$videoName.$selectedExtension", "audio/mp4") { stream, path ->
+                                    fileSaver.selectFolder("$videoName.$selectedExtension",
+                                        "audio/mp4") { stream, path, name ->
                                         isChoosingPath = false
                                         println(path)
-                                        if(path != null){
+                                        if(path != null && name != null){
                                             isDownloading = true
                                             progress = 0f
 
@@ -307,15 +314,16 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                             download(
                                                 link = link,
                                                 downloadPath = path,
+                                                filename = name,
                                                 type = selectedType,
                                                 extension = selectedExtension,
                                                 resolution = selectedResolution,
-                                                onProgressChange = {
-                                                    if(it != null){
-                                                        progress = it/100;
-                                                        print(it/100); print("\n")
-                                                    }
-                                                }
+                                                savedAs = true,
+                                                onProgressChange = { taskProgress, task ->
+                                                    progress = taskProgress
+                                                    downloadTask = task
+                                                },
+                                                onResult = {  }
                                             )
                                         }
                                     }

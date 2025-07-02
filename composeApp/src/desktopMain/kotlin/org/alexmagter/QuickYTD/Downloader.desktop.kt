@@ -44,17 +44,20 @@ actual fun getData(link: String, ifErrorOccurred: (Exception) -> Unit, onResult:
 actual fun download(
     link: String,
     downloadPath: String,
+    filename: String,
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (Float?) -> Unit
+    savedAs: Boolean,
+    onResult: (Boolean) -> Unit,
+    onProgressChange: (Float, String) -> Unit
 ) {
     CoroutineScope(Dispatchers.IO).launch {
         val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
 
         println("$link $extension $resolution $downloadPath")
 
-        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath)
+        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, filename)
         processBuilder.redirectErrorStream(true)
 
         try {
@@ -67,8 +70,8 @@ actual fun download(
 
                 while (true) {
                     line = reader.readLine()
-                    if (line == null) break  // Si ya no hay más líneas, salimos del bucle
-                    onProgressChange(line.toFloat())
+                    if (line == null) break
+                    onProgressChange(line.toFloat(), "Downloading...")
                 }
 
             }.start()

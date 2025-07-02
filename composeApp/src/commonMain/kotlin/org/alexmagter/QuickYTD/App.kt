@@ -50,16 +50,16 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         val density = LocalDensity.current
         val windowWidth = remember { mutableStateOf(700.dp) }
 
-        val maxLinkLenght = 60
+        val maxLinkLenght = 90
 
         val scope = rememberCoroutineScope()
 
 
         Scaffold(
-            containerColor = DarkTheme.backgroundColor,  // Color de fondo del Scaffold
+            containerColor = DarkTheme.backgroundColor,
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkTheme.backgroundColor)  // Fondo personalizado para la ventana
+                .background(DarkTheme.backgroundColor)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -75,7 +75,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                         }
                     },
                     textStyle = TextStyle(color = Color.White),
-                    shape = RoundedCornerShape(50.dp), // Redondeado completamente
+                    shape = RoundedCornerShape(50.dp),
                     colors = DarkTheme.textFieldColors(),
                     modifier = Modifier
                         .width(windowWidth.value)

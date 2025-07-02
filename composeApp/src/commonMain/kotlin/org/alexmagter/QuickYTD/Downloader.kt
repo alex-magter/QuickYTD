@@ -2,14 +2,16 @@ package org.alexmagter.QuickYTD
 
 import java.io.OutputStream
 
-
 expect fun download(
     link: String,
     downloadPath: String,
+    filename: String,
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (Float?) -> Unit
+    savedAs: Boolean = false,
+    onResult: (Boolean) -> Unit = {},
+    onProgressChange: (Float, String) -> Unit
 )
 
 expect fun download(

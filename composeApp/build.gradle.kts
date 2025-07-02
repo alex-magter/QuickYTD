@@ -17,6 +17,7 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+
     
 
     jvm("desktop")
@@ -100,13 +101,15 @@ compose.desktop {
         mainClass = "org.alexmagter.QuickYTD.MainKt"
 
         nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "QuickYTD"
             packageVersion = "1.2.0"
             vendor = "Alex_magter"
 
             windows {
                 // Esta es la propiedad válida para Windows
+
+                includeAllModules = true
                 menuGroup = "AlexMagter"
                 // Opcional: define nombre del acceso directo
                 shortcut = true

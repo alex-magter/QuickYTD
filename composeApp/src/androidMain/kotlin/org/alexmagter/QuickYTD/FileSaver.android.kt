@@ -2,33 +2,39 @@ package org.alexmagter.QuickYTD
 
 import android.net.Uri
 import android.os.Environment
+import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.CompletableDeferred
 import java.io.OutputStream
 
 actual class FileSaver (private val activity: ComponentActivity){
+
+
+
     actual fun getDownloadsFolder(): String {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         return downloadsDir.absolutePath
     }
 
-    var continuation: CompletableDeferred<OutputStream?>? = null
+    private data class SaveAsResult(val uri: Uri?, val outputStream: OutputStream?)
 
-    val createDocumentLauncher = activity.registerForActivityResult(
+    private var continuation: CompletableDeferred<SaveAsResult?>? = null
+
+    private val createDocumentLauncher = activity.registerForActivityResult(
         ActivityResultContracts.CreateDocument("*/*")
     ) { uri ->
         val output = uri?.let {
             activity.contentResolver.openOutputStream(it)
         }
-        continuation?.complete(output)
+        continuation?.complete(SaveAsResult(uri, output))
         continuation = null
     }
 
     actual suspend fun selectFolder(
         suggestedFileName: String,
         mimeType: String,
-        onResult: (outputStream: OutputStream?, pathOrUri: String?) -> Unit
+        onResult: (outputStream: OutputStream?, pathOrUri: String?, filename: String?) -> Unit
     ) {
 
         val uri = CompletableDeferred<Uri?>()
@@ -37,13 +43,21 @@ actual class FileSaver (private val activity: ComponentActivity){
 
         createDocumentLauncher.launch(suggestedFileName)
 
-        val selectedUri = uri.await()
+        val result = continuation?.await()
 
-        val outputStream = selectedUri?.let {
-            context.contentResolver.openOutputStream(it)
+        val actualFilename = result?.uri?.let { uri ->
+            var name: String? = null
+            if (uri.scheme == "content") {
+                activity.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        name = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+                    }
+                }
+            }
+            name ?: suggestedFileName
         }
 
-        val output = continuation?.await()
-        onResult(output, uri.toString())
+        println("Uri de android: $uri")
+        onResult(result?.outputStream, result?.uri.toString(), actualFilename)
     }
 }
