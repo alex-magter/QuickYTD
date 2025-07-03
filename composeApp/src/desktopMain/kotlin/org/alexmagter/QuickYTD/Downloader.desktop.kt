@@ -41,6 +41,10 @@ actual fun getData(link: String, ifErrorOccurred: (Exception) -> Unit, onResult:
     }
 }
 
+actual fun cancelDownload(){
+
+}
+
 actual fun download(
     link: String,
     downloadPath: String,

@@ -3,6 +3,7 @@ package org.alexmagter.QuickYTD
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.expandIn
 import androidx.compose.material3.AlertDialog
 import com.chaquo.python.PyException
 import com.chaquo.python.PyObject
@@ -15,6 +16,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.OutputStream
 import androidx.core.net.toUri
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import java.io.FileInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -77,6 +80,37 @@ actual fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit, onResu
     onResult(isValid)
 }
 
+var downloadThread: Job? = null
+
+var targetFile: File? = null
+
+var Cancelling = false
+
+actual fun cancelDownload(){
+    //downloadThread?.cancel()
+
+    Cancelling = true
+
+    CoroutineScope(Dispatchers.IO).launch{
+
+        delay(500)
+
+        val files = context.cacheDir.listFiles()
+
+        try {
+            for (file in files!!){
+                file.delete()
+            }
+        } catch (e: Exception){
+            println(e)
+        } finally {
+            return@launch
+        }
+    }
+
+
+}
+
 actual fun download(
     link: String,
     downloadPath: String,
@@ -89,6 +123,8 @@ actual fun download(
     onProgressChange: (Double, String) -> Unit
 ) {
 
+    Cancelling = false
+
     val tempDir = if(savedAs) context.cacheDir else File(downloadPath)
     val tempFileName = if(savedAs) "temp_media_${System.currentTimeMillis()}.tmp" else "$filename.$extension"
     val tempFile = File(tempDir, tempFileName)
@@ -96,10 +132,9 @@ actual fun download(
     val tempFilePath = tempFile.absolutePath
 
 
-
     if(type == "Audio"){
 
-        CoroutineScope(Dispatchers.IO).launch{
+        downloadThread = CoroutineScope(Dispatchers.IO).launch{
             if (!Python.isStarted()) {
                 Python.start(AndroidPlatform(context))
             }
@@ -107,6 +142,13 @@ actual fun download(
             val py = Python.getInstance()
             val module = py.getModule("download_Android")
             module.put("progress_callback", onProgressChange)
+            module.put("is_action_cancelled", {
+                val isActive = coroutineContext[Job]?.isActive
+
+                println("Is active thread: $isActive")
+
+                Cancelling
+            })
 
 
             println("Vamos a llamar a python")
@@ -114,6 +156,8 @@ actual fun download(
             try {
                 module.callAttr("downloadAudio", link, extension, resolution, tempDir.toString(), tempFileName)
             } catch (e: PyException) {
+                if(e.message == "Download cancelled") { onResult(true); return@launch }
+
                 Log.e("DownloadError", "Error al descargar: ${e.message}", e)
                 tempFile.delete()
 
@@ -122,6 +166,11 @@ actual fun download(
                 }
                 return@launch
 
+            }
+
+            if(Cancelling) {
+                onResult(true)
+                return@launch
             }
 
             if (!savedAs) { onResult(true); return@launch }
@@ -164,6 +213,17 @@ actual fun download(
                 var bytesCopiedSoFar = 0L
 
                 while (true){
+                    if(Cancelling) {
+
+                        context.contentResolver.openOutputStream(downloadPath.toUri(), "w")?.use {
+                        } ?: run {
+
+                        }
+
+                        onResult(true)
+                        return@launch
+                    }
+
                     bytesRead = inputStream.read(buffer)
                     if (bytesRead == -1) break
 

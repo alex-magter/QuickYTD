@@ -14,6 +14,8 @@ expect fun download(
     onProgressChange: (Double, String) -> Unit
 )
 
+expect fun cancelDownload()
+
 
 expect fun getData(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (VideoData) -> Unit = {})
 

@@ -65,6 +65,7 @@ import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import java.io.File
 
 
 val roboto = getRoboto()
@@ -114,6 +115,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
         var downloadError by remember { mutableStateOf(false) }
         var isDownloadCompele by remember { mutableStateOf(false) }
+        var isDownloadCancelled by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
             windowWidth.value = with(density) {
@@ -143,6 +145,12 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                     downloadError = false
                     isDownloadCompele = false
                     isDownloading = false
+                    isDownloadCancelled = false
+                },
+                onCancelRequest = {
+                    downloadTask = "Cancelling download..."
+                    isDownloadCancelled = true
+                    cancelDownload()
                 }
             )
 
@@ -264,6 +272,29 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                             .height(60.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+
+                        fun onResult( successful: Boolean ){
+                            isDownloadCompele = true
+
+                            if(successful){
+                                if(isDownloadCancelled){
+                                    downloadTask = "Download canceled successfully"
+                                } else {
+                                    downloadTask = "Download completed successfully"
+                                }
+
+                            } else {
+                                downloadTask = "Error while downloading"
+                                downloadError = true
+                            }
+                        }
+
+                        fun onProgress(taskProgress: Double, task: String){
+                            progress = taskProgress/100;
+                            print(progress); print("\n")
+                            downloadTask = task
+                        }
+
                         Button(
                             onClick = {
                                 isDownloading = true
@@ -280,20 +311,13 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                     resolution = selectedResolution,
                                     savedAs = false,
                                     onResult = { successful ->
-                                        isDownloadCompele = true
 
-                                        if(successful){
-                                            downloadTask = "Download completed successfully"
-                                        } else {
-                                            downloadTask = "Error while downloading"
-                                            downloadError = true
-                                        }
+                                        onResult(successful)
 
                                     },
                                     onProgressChange = { taskProgress, task ->
-                                        progress = taskProgress/100;
-                                        print(progress/100); print("\n")
-                                        downloadTask = task
+
+                                        onProgress(taskProgress, task)
                                     }
                                 )
                             },
@@ -325,7 +349,6 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                     fileSaver.selectFolder("$videoName.$selectedExtension",
                                         "audio/mp4") { stream, path, name ->
                                         isChoosingPath = false
-                                        println(path)
                                         if(path != null && name != null){
                                             isDownloading = true
                                             progress = 0.0
@@ -342,22 +365,12 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                                 savedAs = true,
                                                 onProgressChange = { taskProgress, task ->
 
-                                                    println("Tipo de progress: ${taskProgress::class.simpleName}")
+                                                    onProgress(taskProgress, task)
 
-                                                    progress = taskProgress
-                                                    print(progress/100); print("\n")
-
-                                                    downloadTask = task
                                                 },
                                                 onResult = { successful ->
-                                                    isDownloadCompele = true
 
-                                                    if(successful){
-                                                        downloadTask = "Download completed successfully"
-                                                    } else {
-                                                        downloadTask = "Error while downloading"
-                                                        downloadError = true
-                                                    }
+                                                    onResult(successful)
                                                 }
                                             )
                                         }
@@ -510,7 +523,7 @@ fun DownloadWindow(
 
                         Spacer(Modifier.weight(1f))
                         Button(
-                            onClick = { onExit() },
+                            onClick = { onCancelRequest() },
                             enabled = true,
                             colors = DarkTheme.CancelButtonColors(true),
                             modifier = Modifier

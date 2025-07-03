@@ -12,6 +12,10 @@ def on_progress(stream, chunk, bytes_remaining):
     progress = (bytes_downloaded / total_size) * 100
 
     progress_callback(float(progress), "Downloading...")
+    
+    if(is_action_cancelled()):
+        raise Exception("Download cancelled")
+
 
 
 def downloadAudio(url, ext, res, pathToDownload, filename):
