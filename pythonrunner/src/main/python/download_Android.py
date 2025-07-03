@@ -10,10 +10,11 @@ def on_progress(stream, chunk, bytes_remaining):
     bytes_downloaded = total_size - bytes_remaining
 
     progress = (bytes_downloaded / total_size) * 100
-    print(progress/100, flush=True)
+
+    progress_callback(float(progress), "Downloading...")
 
 
-def downloadAudio(url, ext, res, pathToDownload, filename, callbackOnProgress):
+def downloadAudio(url, ext, res, pathToDownload, filename):
 
     extension = "mp4" if ext == 'm4a' else 'webm'
     yt = YouTube(url,

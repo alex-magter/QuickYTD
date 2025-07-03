@@ -33,4 +33,13 @@ object DarkTheme {
             disabledContainerColor = Color.Gray,
             disabledContentColor = Color.DarkGray
         )
+
+    @Composable
+    fun CancelButtonColors(isEnabled: Boolean) =
+        ButtonDefaults.buttonColors(
+            containerColor = Color.Red,
+            contentColor = Color.White,
+            disabledContainerColor = Color.Gray,
+            disabledContentColor = Color.DarkGray
+        )
 }

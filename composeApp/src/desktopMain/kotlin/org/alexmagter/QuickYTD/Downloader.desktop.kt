@@ -50,12 +50,12 @@ actual fun download(
     resolution: String,
     savedAs: Boolean,
     onResult: (Boolean) -> Unit,
-    onProgressChange: (Float, String) -> Unit
+    onProgressChange: (Double, String) -> Unit
 ) {
     CoroutineScope(Dispatchers.IO).launch {
         val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
 
-        println("$link $extension $resolution $downloadPath")
+        println("$link $extension $resolution $downloadPath $filename")
 
         val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, filename)
         processBuilder.redirectErrorStream(true)
@@ -71,29 +71,22 @@ actual fun download(
                 while (true) {
                     line = reader.readLine()
                     if (line == null) break
-                    onProgressChange(line.toFloat(), "Downloading...")
+                    onProgressChange(line.toDouble(), "Downloading...")
                 }
 
             }.start()
 
             process.waitFor()
 
+            onResult(true)
+
         } catch (e: Exception) {
+            onResult(false)
             null
         }
     }
 }
 
-actual fun download(
-    link: String,
-    downloadPath: OutputStream,
-    type: String,
-    extension: String,
-    resolution: String,
-    onProgressChange: (String?) -> Unit
-){
-
-}
 
 fun extractScriptFromRes(fileName: String): File? {
     val inputStream = {}.javaClass.getResourceAsStream("/$fileName") ?: return null

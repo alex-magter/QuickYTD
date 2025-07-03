@@ -11,16 +11,7 @@ expect fun download(
     resolution: String,
     savedAs: Boolean = false,
     onResult: (Boolean) -> Unit = {},
-    onProgressChange: (Float, String) -> Unit
-)
-
-expect fun download(
-    link: String,
-    downloadPath: OutputStream,
-    type: String,
-    extension: String,
-    resolution: String,
-    onProgressChange: (String?) -> Unit
+    onProgressChange: (Double, String) -> Unit
 )
 
 

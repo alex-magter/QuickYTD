@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material3.Button
@@ -104,12 +105,15 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
         var isVertical by remember { mutableStateOf(false) }
 
-        var progress by remember { mutableStateOf<Float>(0f) }
+        var progress by remember { mutableStateOf<Double>(0.0) }
         var isDownloading by remember { mutableStateOf(false) }
 
         var isChoosingPath by remember { mutableStateOf(false) }
 
-        var downloadTask by remember { mutableStateOf("") }
+        var downloadTask by remember { mutableStateOf("Starting download...") }
+
+        var downloadError by remember { mutableStateOf(false) }
+        var isDownloadCompele by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
             windowWidth.value = with(density) {
@@ -130,10 +134,17 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
             DownloadWindow(downloading = isDownloading,
                 label = downloadTask,
-                progress = progress
-            ){
-                isDownloading = false
-            }
+                progress = progress,
+                downloadComplete = isDownloadCompele,
+                error = downloadError,
+                onExit = {
+                    downloadTask = "Starting download..."
+                    progress = 0.0
+                    downloadError = false
+                    isDownloadCompele = false
+                    isDownloading = false
+                }
+            )
 
             Box(
                 modifier = Modifier
@@ -256,9 +267,9 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         Button(
                             onClick = {
                                 isDownloading = true
-                                progress = 0f
+                                progress = 0.0
 
-                                val name = videoName
+                                val name = videoName + selectedExtension
 
                                 download(
                                     link = link,
@@ -268,7 +279,17 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                     extension = selectedExtension,
                                     resolution = selectedResolution,
                                     savedAs = false,
-                                    onResult = {},
+                                    onResult = { successful ->
+                                        isDownloadCompele = true
+
+                                        if(successful){
+                                            downloadTask = "Download completed successfully"
+                                        } else {
+                                            downloadTask = "Error while downloading"
+                                            downloadError = true
+                                        }
+
+                                    },
                                     onProgressChange = { taskProgress, task ->
                                         progress = taskProgress/100;
                                         print(progress/100); print("\n")
@@ -307,7 +328,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                         println(path)
                                         if(path != null && name != null){
                                             isDownloading = true
-                                            progress = 0f
+                                            progress = 0.0
 
                                             println(path)
 
@@ -320,10 +341,24 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                                 resolution = selectedResolution,
                                                 savedAs = true,
                                                 onProgressChange = { taskProgress, task ->
+
+                                                    println("Tipo de progress: ${taskProgress::class.simpleName}")
+
                                                     progress = taskProgress
+                                                    print(progress/100); print("\n")
+
                                                     downloadTask = task
                                                 },
-                                                onResult = {  }
+                                                onResult = { successful ->
+                                                    isDownloadCompele = true
+
+                                                    if(successful){
+                                                        downloadTask = "Download completed successfully"
+                                                    } else {
+                                                        downloadTask = "Error while downloading"
+                                                        downloadError = true
+                                                    }
+                                                }
                                             )
                                         }
                                     }
@@ -428,10 +463,20 @@ fun DownloadProgress(label: String?, progress: String?, isDownloading: Boolean) 
 }
 
 @Composable
-fun DownloadWindow(downloading: Boolean = false, label: String?, progress: Float, onCancelDownload: () -> Unit = {}){
+fun DownloadWindow(
+    downloading: Boolean = false,
+    label: String?, progress: Double,
+    downloadComplete: Boolean,
+    error: Boolean,
+    onExit: () -> Unit = {},
+    onCancelRequest: () -> Unit = {}){
     if(downloading){
         Dialog(
-            onDismissRequest = {  }
+            onDismissRequest = {
+                if(downloadComplete){
+                    onExit()
+                }
+            }
         ){
             Box(
                 modifier = Modifier
@@ -448,33 +493,65 @@ fun DownloadWindow(downloading: Boolean = false, label: String?, progress: Float
                         .padding(16.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("$label...", color = Color.White)
-                    Spacer(Modifier.height(20.dp))
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier.fillMaxWidth(),
 
+                    Text("$label",
+                        color = if(error) Color.Red else Color.White
+                    )
+
+
+
+                    if(!downloadComplete){
+
+                        Spacer(Modifier.height(20.dp))
+                        LinearProgressIndicator(
+                            progress = { progress.toFloat() },
+                            modifier = Modifier.fillMaxWidth(),
                         )
 
-                    Spacer(Modifier.weight(1f))
-                    Button(
-                        onClick = { onCancelDownload() },
-                        enabled = true,
-                        colors = DarkTheme.ButtonColors(true),
-                        modifier = Modifier
-                            .width(150.dp)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(1.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = { onExit() },
+                            enabled = true,
+                            colors = DarkTheme.CancelButtonColors(true),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(1.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
 
-                            ) {
-                            Text("Cancel")
-                            Spacer(Modifier.width(4.dp))
-                            Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                                ) {
+                                Text("Cancel")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                            }
+                        }
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = {
+                                onExit()
+                            },
+                            enabled = true,
+                            colors = DarkTheme.ButtonColors(true),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(1.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+
+                                ) {
+                                Text("Close")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Filled.Close, contentDescription = "Close the dialog")
+                            }
                         }
                     }
                 }
@@ -482,4 +559,6 @@ fun DownloadWindow(downloading: Boolean = false, label: String?, progress: Float
         }
     }
 }
+
+
 

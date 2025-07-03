@@ -86,7 +86,7 @@ actual fun download(
     resolution: String,
     savedAs: Boolean,
     onResult: (Boolean) -> Unit,
-    onProgressChange: (Float, String) -> Unit
+    onProgressChange: (Double, String) -> Unit
 ) {
 
     val tempDir = if(savedAs) context.cacheDir else File(downloadPath)
@@ -106,12 +106,13 @@ actual fun download(
 
             val py = Python.getInstance()
             val module = py.getModule("download_Android")
+            module.put("progress_callback", onProgressChange)
+
 
             println("Vamos a llamar a python")
 
             try {
-                module.callAttr("downloadAudio", link, extension, resolution, tempDir.toString(), tempFileName,
-                    { println("Callback progreso inline") })
+                module.callAttr("downloadAudio", link, extension, resolution, tempDir.toString(), tempFileName)
             } catch (e: PyException) {
                 Log.e("DownloadError", "Error al descargar: ${e.message}", e)
                 tempFile.delete()
@@ -156,19 +157,6 @@ actual fun download(
 
                 val inputStream: InputStream = FileInputStream(tempFile)
 
-                /*outputStream.use { os ->
-                    inputStream.use{ ins ->
-                        Log.d("FileCopy", "Copiando datos...")
-
-                        val bufferSize = 8 /* Size in kb */ * 1024
-
-                        val bytesCopied = ins.copyTo(os, bufferSize)
-                        os.flush()
-                        Log.d("FileCopy", "Copia completada. Se han copiado ${bytesCopied / 1024 / 1024}MB")
-                        success = true
-                    }
-                }*/
-
                 val bufferSize = 8 /* Size in kb */ * 1024
                 val buffer = ByteArray(bufferSize) // Bytes que se van a escribir en esta iteracion
                 var bytesRead: Int // Numero de bytes que se van a escribir en esta iteracion
@@ -185,10 +173,12 @@ actual fun download(
                     val currentPercentage = ((bytesCopiedSoFar * 100) / totalBytesToCopy).toInt()
                     if (currentPercentage > lastReportedPercentage || bytesCopiedSoFar == totalBytesToCopy) {
                         withContext(Dispatchers.Main){
-                            onProgressChange(currentPercentage.toFloat(), "Copying file to the desired ubication...")
+                            onProgressChange(currentPercentage.toDouble(), "Copying file to the desired ubication...")
                         }
                         lastReportedPercentage = currentPercentage
                     }
+
+
                 }
             } catch (e: IOException) {
                 Log.e("FileCopy", "I/O Error during copy", e)
@@ -203,6 +193,8 @@ actual fun download(
                     Log.d("FileCopy", "Deleting temporal file: ${tempFile.absolutePath}")
                     if(!tempFile.delete()) {
                         Log.w("FileCopy", "Cant delete temp file: ${tempFile.absolutePath}")
+                    } else {
+                        success = true
                     }
                 }
 
@@ -212,15 +204,4 @@ actual fun download(
             }
         }
     } else return
-}
-
-actual fun download(
-    link: String,
-    downloadPath: OutputStream,
-    type: String,
-    extension: String,
-    resolution: String,
-    onProgressChange: (String?) -> Unit
-){
-
 }
