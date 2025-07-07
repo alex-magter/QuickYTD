@@ -6,9 +6,10 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
 import kotlinx.coroutines.*
+import java.io.OutputStream
 
 
-actual fun checkVideo(link: String, onResult: (Boolean) -> Unit){
+actual fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit, onResult: (Boolean) -> Unit){
     CoroutineScope(Dispatchers.IO).launch {
         val output = runPyScriptFromRes("checkVideo.py", listOf(link))
         val isValid : Boolean
@@ -21,19 +22,13 @@ actual fun checkVideo(link: String, onResult: (Boolean) -> Unit){
         // Volvemos al hilo principal para actualizar la UI
         withContext(Dispatchers.Main) {
             onResult(isValid)  // Llamamos al callback con los datos obtenidos
-            getData(
-                link,
-                {
-
-                }
-            )
         }
     }
 
 
 }
 
-actual fun getData(link: String, onResult: (VideoData) -> Unit) {
+actual fun getData(link: String, ifErrorOccurred: (Exception) -> Unit, onResult: (VideoData) -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
         val output = runPyScriptFromRes("getData.py", listOf(link))
 
@@ -46,18 +41,80 @@ actual fun getData(link: String, onResult: (VideoData) -> Unit) {
     }
 }
 
+var Cancelling = false
+var downloadProcess: Process? = null
+var outputFile: File? = null
+
+actual fun cancelDownload(){
+    Cancelling = true
+
+    downloadProcess?.destroy()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        delay(100)
+        outputFile?.delete()
+    }
+
+
+}
+
 actual fun download(
     link: String,
     downloadPath: String,
+    filename: String,
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (String?) -> Unit
+    savedAs: Boolean,
+    onResult: (Boolean) -> Unit,
+    onProgressChange: (Double, String) -> Unit
 ) {
+    Cancelling = false
+
     CoroutineScope(Dispatchers.IO).launch {
-        val output = runPyScriptFromResInRealTime("download.py", listOf(link, type, extension, resolution), onProgressChange)
+        val scriptFile = when (type){
+            "Audio" -> extractScriptFromRes("downloadAudio.py")
+            "Video (muted)" -> extractScriptFromRes("downloadVideoMuted.py")
+            else -> return@launch
+        } ?: return@launch
+
+        println("$link $extension $resolution $downloadPath $filename")
+
+        outputFile = File(downloadPath, filename)
+
+        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
+        processBuilder.redirectErrorStream(true)
+
+        try {
+
+            val process = processBuilder.start()
+            downloadProcess = process
+
+            val output = mutableListOf<String>()
+
+            Thread {
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                var line: String?
+
+                while (true) {
+                    line = reader.readLine()
+                    if (line == null) break
+                    onProgressChange(line.toDouble(), "Downloading...")
+                }
+
+            }.start()
+
+            process.waitFor()
+
+            onResult(true)
+
+        } catch (e: Exception) {
+            onResult(false)
+            null
+        }
     }
 }
+
 
 fun extractScriptFromRes(fileName: String): File? {
     val inputStream = {}.javaClass.getResourceAsStream("/$fileName") ?: return null
@@ -85,38 +142,6 @@ suspend fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList(
         val output = mutableListOf<String>()
         reader.useLines { lines ->
             output.addAll(lines)
-        }
-
-        process.waitFor()
-        return scriptOutput (File(scriptFile.parentFile?.absolutePath ?: ""), output)
-    } catch (e: Exception) {
-        null
-    }
-}
-
-suspend fun runPyScriptFromResInRealTime(fileName: String, args: List<String> = emptyList(), forEveryOutput: (String?) -> Unit): scriptOutput?  {
-    val scriptFile = extractScriptFromRes(fileName) ?: return null
-
-    val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, *args.toTypedArray())
-    processBuilder.redirectErrorStream(true)
-
-    return try {
-        val process = processBuilder.start()
-        val output = mutableListOf<String>()
-        val reader = BufferedReader(InputStreamReader(process.inputStream))
-
-        var line: String?
-        while (reader.readLine().also { line = it } != null) {
-            println("PYTHON >> $line")
-            val regex = Regex("""Progreso:\s+([\d.]+%)""")
-
-            val match = regex.find(line as CharSequence)
-            if (match != null) {
-                val percentage = match.groupValues[1]
-                forEveryOutput(percentage)
-            }
-            output.add(
-                line!!)
         }
 
         process.waitFor()

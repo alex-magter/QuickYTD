@@ -26,6 +26,15 @@ object DarkTheme {
     )
 
     @Composable
+    fun SearcbButtonColors(isEnabled: Boolean) =
+        ButtonDefaults.buttonColors(
+            containerColor = Color.White,
+            contentColor = Color.Black,
+            disabledContainerColor = Color.Gray,
+            disabledContentColor = Color.DarkGray
+        )
+
+    @Composable
     fun ButtonColors(isEnabled: Boolean) =
         ButtonDefaults.buttonColors(
             containerColor = Color.White,
@@ -34,8 +43,14 @@ object DarkTheme {
             disabledContentColor = Color.DarkGray
         )
 
-
-
+    @Composable
+    fun CancelButtonColors(isEnabled: Boolean) =
+        ButtonDefaults.buttonColors(
+            containerColor = Color.Red,
+            contentColor = Color.White,
+            disabledContainerColor = Color.Gray,
+            disabledContentColor = Color.DarkGray
+        )
 
 
 }

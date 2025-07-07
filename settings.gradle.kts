@@ -3,6 +3,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     repositories {
+
         google {
             mavenContent {
                 includeGroupAndSubgroups("androidx")
@@ -12,7 +13,9 @@ pluginManagement {
         }
         mavenCentral()
         maven { url = uri("https://chaquo.com/maven") }
+        maven{ url = uri("https://maven.pkg.jetbrains.space/public/p/compose/dev") }
         gradlePluginPortal()
+        google()
     }
 }
 

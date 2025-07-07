@@ -1,15 +1,22 @@
 package org.alexmagter.QuickYTD
 
+import java.io.OutputStream
 
 expect fun download(
     link: String,
     downloadPath: String,
+    filename: String,
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (String?) -> Unit
+    savedAs: Boolean = false,
+    onResult: (Boolean) -> Unit = {},
+    onProgressChange: (Double, String) -> Unit
 )
 
-expect fun getData(link: String, onResult: (VideoData) -> Unit)
+expect fun cancelDownload()
 
-expect fun checkVideo(link: String, onResult: (Boolean) -> Unit)
+
+expect fun getData(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (VideoData) -> Unit = {})
+
+expect fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (Boolean) -> Unit = {})

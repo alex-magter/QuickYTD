@@ -1,8 +1,12 @@
 package org.alexmagter.QuickYTD
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandIn
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -21,9 +25,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SaveAs
 import androidx.compose.material3.Button
@@ -32,7 +39,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -52,8 +61,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.coerceAtMost
+import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import java.io.File
 
 
 val roboto = getRoboto()
@@ -64,7 +76,7 @@ val roboto = getRoboto()
 )
 @Preview
 @Composable
-fun VideoPage(viewModel: SharedViewModel) {
+fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
     val videoData = viewModel.videoData
     val link = videoData.link
@@ -94,8 +106,16 @@ fun VideoPage(viewModel: SharedViewModel) {
 
         var isVertical by remember { mutableStateOf(false) }
 
-        var progress by remember { mutableStateOf<String?>("") }
+        var progress by remember { mutableStateOf<Double>(0.0) }
         var isDownloading by remember { mutableStateOf(false) }
+
+        var isChoosingPath by remember { mutableStateOf(false) }
+
+        var downloadTask by remember { mutableStateOf("Starting download...") }
+
+        var downloadError by remember { mutableStateOf(false) }
+        var isDownloadCompele by remember { mutableStateOf(false) }
+        var isDownloadCancelled by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
             windowWidth.value = with(density) {
@@ -112,6 +132,27 @@ fun VideoPage(viewModel: SharedViewModel) {
                 .graphicsLayer()
                 .background(DarkTheme.backgroundColor)
         ) { innerPadding ->
+
+
+            DownloadWindow(downloading = isDownloading,
+                label = downloadTask,
+                progress = progress,
+                downloadComplete = isDownloadCompele,
+                error = downloadError,
+                onExit = {
+                    downloadTask = "Starting download..."
+                    progress = 0.0
+                    downloadError = false
+                    isDownloadCompele = false
+                    isDownloading = false
+                    isDownloadCancelled = false
+                },
+                onCancelRequest = {
+                    downloadTask = "Cancelling download..."
+                    isDownloadCancelled = true
+                    cancelDownload()
+                }
+            )
 
             Box(
                 modifier = Modifier
@@ -221,14 +262,6 @@ fun VideoPage(viewModel: SharedViewModel) {
                             size = videoSize,
                             areFieldsFilled = selectedResolution != ""
                         )
-
-                        DownloadProgress(
-                            label = "Download progress",
-                            progress = progress,
-                            isDownloading = isDownloading
-                        )
-
-
                     }
 
                     Row(
@@ -239,22 +272,56 @@ fun VideoPage(viewModel: SharedViewModel) {
                             .height(60.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+
+                        fun onResult( successful: Boolean ){
+                            isDownloadCompele = true
+
+                            if(successful){
+                                if(isDownloadCancelled){
+                                    downloadTask = "Download canceled successfully"
+                                } else {
+                                    downloadTask = "Download completed successfully"
+                                }
+
+                            } else {
+                                downloadTask = "Error while downloading"
+                                downloadError = true
+                            }
+                        }
+
+                        fun onProgress(taskProgress: Double, task: String){
+                            progress = taskProgress/100;
+                            print(progress); print("\n")
+                            downloadTask = task
+                        }
+
                         Button(
                             onClick = {
-                                /*if (videoData != null) {
-                                    isDownloading = true
-                                    download(
-                                        link = videoData.link,
-                                        type = selectedType,
-                                        extension = selectedExtension,
-                                        resolution = selectedResolution,
-                                        onProgressChange = {
-                                            progress = it
-                                        }
-                                    )
-                                }*/
+                                isDownloading = true
+                                progress = 0.0
+
+                                val name = videoName
+
+                                download(
+                                    link = link,
+                                    downloadPath = fileSaver.getDownloadsFolder(),
+                                    filename = name,
+                                    type = selectedType,
+                                    extension = selectedExtension,
+                                    resolution = selectedResolution,
+                                    savedAs = false,
+                                    onResult = { successful ->
+
+                                        onResult(successful)
+
+                                    },
+                                    onProgressChange = { taskProgress, task ->
+
+                                        onProgress(taskProgress, task)
+                                    }
+                                )
                             },
-                            enabled = selectedResolution != "",
+                            enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
                             modifier = Modifier
                                 .weight(1f)
@@ -274,25 +341,43 @@ fun VideoPage(viewModel: SharedViewModel) {
 
                         val scope = rememberCoroutineScope()
                         Button(
+
                             onClick = {
+                                isChoosingPath = true
+
                                 scope.launch {
-                                    selectFolder(videoName + "." + selectedExtension, "audio/mp4") {
-                                        if(it != null){
+                                    fileSaver.selectFolder("$videoName.$selectedExtension",
+                                        "audio/mp4") { stream, path, name ->
+                                        isChoosingPath = false
+                                        if(path != null && name != null){
+                                            isDownloading = true
+                                            progress = 0.0
+
+                                            println(path)
+
                                             download(
                                                 link = link,
-                                                downloadPath = it,
+                                                downloadPath = path,
+                                                filename = name,
                                                 type = selectedType,
                                                 extension = selectedExtension,
                                                 resolution = selectedResolution,
-                                                onProgressChange = {
+                                                savedAs = true,
+                                                onProgressChange = { taskProgress, task ->
 
+                                                    onProgress(taskProgress, task)
+
+                                                },
+                                                onResult = { successful ->
+
+                                                    onResult(successful)
                                                 }
                                             )
                                         }
                                     }
                                 }
                             },
-                            enabled = selectedResolution != "",
+                            enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
                             modifier = Modifier
                                 .weight(1f)
@@ -339,6 +424,7 @@ fun Dropdown(label: String, elements: List<String>, selectedValue: String, onVal
             colors = DarkTheme.textFieldColors(),
             shape = DarkTheme.dropdownShape
         )
+
 
         ExposedDropdownMenu(
             expanded = expanded,
@@ -388,3 +474,104 @@ fun DownloadProgress(label: String?, progress: String?, isDownloading: Boolean) 
         )
     }
 }
+
+@Composable
+fun DownloadWindow(
+    downloading: Boolean = false,
+    label: String?, progress: Double,
+    downloadComplete: Boolean,
+    error: Boolean,
+    onExit: () -> Unit = {},
+    onCancelRequest: () -> Unit = {}){
+    if(downloading){
+        Dialog(
+            onDismissRequest = {
+                if(downloadComplete){
+                    onExit()
+                }
+            }
+        ){
+            Box(
+                modifier = Modifier
+                    .background(DarkTheme.backgroundColor, shape = DarkTheme.dropdownShape)
+                    .padding(16.dp)
+                    .width(300.dp)
+                    .height(200.dp)
+
+            ) {
+
+                Column (
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+                    Text("$label",
+                        color = if(error) Color.Red else Color.White
+                    )
+
+
+
+                    if(!downloadComplete){
+
+                        Spacer(Modifier.height(20.dp))
+                        LinearProgressIndicator(
+                            progress = { progress.toFloat() },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = { onCancelRequest() },
+                            enabled = true,
+                            colors = DarkTheme.CancelButtonColors(true),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(1.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+
+                                ) {
+                                Text("Cancel")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Filled.Cancel, contentDescription = "Cancel the download")
+                            }
+                        }
+                    } else {
+                        Spacer(Modifier.weight(1f))
+                        Button(
+                            onClick = {
+                                onExit()
+                            },
+                            enabled = true,
+                            colors = DarkTheme.ButtonColors(true),
+                            modifier = Modifier
+                                .width(150.dp)
+                                .height(50.dp),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(1.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+
+                                ) {
+                                Text("Close")
+                                Spacer(Modifier.width(4.dp))
+                                Icon(Icons.Filled.Close, contentDescription = "Close the dialog")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+

@@ -72,6 +72,8 @@ def getData(url):
     audios = yt_streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc()
     videos = yt_streams.filter(only_video=True)
 
+    highestAudioFilesize = yt_streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc().first().filesize
+
     # The list of lists that will contain the output
     output = list()
 
@@ -98,7 +100,7 @@ def getData(url):
         newRow.append('Video')
         newRow.append('webm')
         newRow.append(webm.resolution)
-        newRow.append(byteToMb(webm.filesize))
+        newRow.append(byteToMb(webm.filesize + highestAudioFilesize))
         if "vp9" in webm.video_codec:
             output.append(newRow)
 
@@ -112,13 +114,40 @@ def getData(url):
         newRow.append('Video')
         newRow.append('mp4')
         newRow.append(mp4.resolution)
-        newRow.append(byteToMb(mp4.filesize))
+        newRow.append(byteToMb(mp4.filesize + highestAudioFilesize))
 
         if "avc1." in mp4.video_codec: # For 1080p and below we use h264 for compatibility
             output.append(newRow)
         elif mp4.resolution == "1440p" or mp4.resolution == "2160p": # but in above resolution there is no h264 in pytube...
             output.append(newRow)                                    # ... so we download the available one
 
+    # Now we get the values for WebM videos
+    # It filters vp9 videos
+    for webm in webmVideos:
+        newRow = list()
+        newRow.append('Video (muted)')
+        newRow.append('webm')
+        newRow.append(webm.resolution)
+        newRow.append(byteToMb(webm.filesize))
+        if "vp9" in webm.video_codec:
+            output.append(newRow)
+
+    mp4Videos = videos
+    mp4Videos.filter(file_extension='mp4')
+    mp4Videos.order_by("resolution").desc()
+
+    # Now we filter for mp4 videos
+    for mp4 in mp4Videos:
+        newRow = list()
+        newRow.append('Video (muted)')
+        newRow.append('mp4')
+        newRow.append(mp4.resolution)
+        newRow.append(byteToMb(mp4.filesize))
+
+        if "avc1." in mp4.video_codec: # For 1080p and below we use h264 for compatibility
+            output.append(newRow)
+        elif mp4.resolution == "1440p" or mp4.resolution == "2160p": # but in above resolution there is no h264 in pytube...
+            output.append(newRow)                                    # ... so we download the available one
 
     listsToCsv(output) # And we convert the data to csv to use it in kotlin
 
