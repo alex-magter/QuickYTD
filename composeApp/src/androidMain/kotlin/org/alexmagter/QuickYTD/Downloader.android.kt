@@ -387,29 +387,6 @@ fun downloadVideo(
         val exportTag = "Exporting"
 
 
-
-        /*if(!savedAs){
-            val name = File(filename).nameWithoutExtension
-            val extension = File(filename).extension
-
-            var uniqueFileNameFound = false
-            var attempts = 0
-
-            outherWhile@ while(!uniqueFileNameFound){
-                val completename = "$name($attempts).$extension"
-                for (file in File(downloadPath).listFiles()!!){
-                    if(file.name == completename){
-                        attempts++;
-                        continue@outherWhile
-                    }
-                }
-
-                uniqueFileNameFound = true
-                outputFile = File(downloadPath, completename)
-            }
-        }*/
-
-
         onProgressChange(0.0, exportTag)
 
         val videoExtractor = MediaExtractor().apply { setDataSource(videoFile.absolutePath) }
