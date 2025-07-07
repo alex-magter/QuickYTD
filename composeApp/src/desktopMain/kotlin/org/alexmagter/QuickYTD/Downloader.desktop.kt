@@ -41,24 +41,55 @@ actual fun getData(link: String, ifErrorOccurred: (Exception) -> Unit, onResult:
     }
 }
 
+var Cancelling = false
+var downloadProcess: Process? = null
+var outputFile: File? = null
+
+actual fun cancelDownload(){
+    Cancelling = true
+
+    downloadProcess?.destroy()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        delay(100)
+        outputFile?.delete()
+    }
+
+
+}
+
 actual fun download(
     link: String,
     downloadPath: String,
+    filename: String,
     type: String,
     extension: String,
     resolution: String,
-    onProgressChange: (Float?) -> Unit
+    savedAs: Boolean,
+    onResult: (Boolean) -> Unit,
+    onProgressChange: (Double, String) -> Unit
 ) {
+    Cancelling = false
+
     CoroutineScope(Dispatchers.IO).launch {
-        val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
+        val scriptFile = when (type){
+            "Audio" -> extractScriptFromRes("downloadAudio.py")
+            "Video (muted)" -> extractScriptFromRes("downloadVideoMuted.py")
+            else -> return@launch
+        } ?: return@launch
 
-        println("$link $extension $resolution $downloadPath")
+        println("$link $extension $resolution $downloadPath $filename")
 
-        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath)
+        outputFile = File(downloadPath, filename)
+
+        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
         processBuilder.redirectErrorStream(true)
 
         try {
+
             val process = processBuilder.start()
+            downloadProcess = process
+
             val output = mutableListOf<String>()
 
             Thread {
@@ -67,30 +98,23 @@ actual fun download(
 
                 while (true) {
                     line = reader.readLine()
-                    if (line == null) break  // Si ya no hay más líneas, salimos del bucle
-                    onProgressChange(line.toFloat())
+                    if (line == null) break
+                    onProgressChange(line.toDouble(), "Downloading...")
                 }
 
             }.start()
 
             process.waitFor()
 
+            onResult(true)
+
         } catch (e: Exception) {
+            onResult(false)
             null
         }
     }
 }
 
-actual fun download(
-    link: String,
-    downloadPath: OutputStream,
-    type: String,
-    extension: String,
-    resolution: String,
-    onProgressChange: (String?) -> Unit
-){
-
-}
 
 fun extractScriptFromRes(fileName: String): File? {
     val inputStream = {}.javaClass.getResourceAsStream("/$fileName") ?: return null

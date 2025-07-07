@@ -50,16 +50,16 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         val density = LocalDensity.current
         val windowWidth = remember { mutableStateOf(700.dp) }
 
-        val maxLinkLenght = 60
+        val maxLinkLenght = 90
 
         val scope = rememberCoroutineScope()
 
 
         Scaffold(
-            containerColor = DarkTheme.backgroundColor,  // Color de fondo del Scaffold
+            containerColor = DarkTheme.backgroundColor,
             modifier = Modifier
                 .fillMaxSize()
-                .background(DarkTheme.backgroundColor)  // Fondo personalizado para la ventana
+                .background(DarkTheme.backgroundColor)
         ) {
             Column(
                 modifier = Modifier.fillMaxSize(),
@@ -75,7 +75,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                         }
                     },
                     textStyle = TextStyle(color = Color.White),
-                    shape = RoundedCornerShape(50.dp), // Redondeado completamente
+                    shape = RoundedCornerShape(50.dp),
                     colors = DarkTheme.textFieldColors(),
                     modifier = Modifier
                         .width(windowWidth.value)
@@ -83,33 +83,36 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     placeholder = { Text("Enter the link here", color = Color.Gray) },
                 )
 
-                Button(onClick = {
-                    checkVideo(
-                        link = link,
-                        ifErrorOccurred = {
-                            hadErrorGettingVideo = true
-                            error = it.toString()
-                        }
-                        ) { result ->
-                        isLinkInvalid = !result
-                        if (result) {
-                            isGettingData = true
+                Button(
+                    onClick = {
+                        checkVideo(
+                            link = link,
+                            ifErrorOccurred = {
+                                hadErrorGettingVideo = true
+                                error = it.toString()
+                            }) { result ->
+                                isLinkInvalid = !result
+                                if (result) {
+                                    isGettingData = true
 
-                            scope.launch {
-                                if(isAndroid()){
-                                    delay(350)
-                                } else {
-                                    delay(0)
-                                }
+                                    scope.launch {
+                                        if(isAndroid()){
+                                            delay(350)
+                                        } else {
+                                            delay(0)
+                                        }
 
-                                getData(link) { data ->
-                                    viewModel.videoData = data
-                                    navController.navigate("VideoPage")
+                                        getData(link) { data ->
+                                            viewModel.videoData = data
+                                            navController.navigate("VideoPage")
+                                        }
+                                    }
                                 }
                             }
-                        }
-                    }
-                }) {
+                    },
+                    enabled = !isGettingData,
+                    colors = DarkTheme.SearcbButtonColors(!isGettingData)
+                ){
                     Text("Buscar")
                 }
 
