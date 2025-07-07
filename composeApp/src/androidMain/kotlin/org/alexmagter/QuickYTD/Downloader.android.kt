@@ -142,6 +142,7 @@ actual fun download(
     onResult: (Boolean) -> Unit,
     onProgressChange: (Double, String) -> Unit
 ) {
+    Cancelling = false
 
     if(type == "Video"){
         downloadVideo(
@@ -155,9 +156,9 @@ actual fun download(
             onResult = onResult,
             onProgressChange = onProgressChange
         )
+        return
     }
 
-    Cancelling = false
 
     val tempDir = if(savedAs) context.cacheDir else File(downloadPath)
     val tempFileName = if(savedAs) "temp_media_${System.currentTimeMillis()}.tmp" else "$filename.$extension"
@@ -386,6 +387,23 @@ fun downloadVideo(
 
         val exportTag = "Exporting"
 
+
+
+        if(!savedAs){
+            val name = outputFile.nameWithoutExtension
+            val fileExtension = outputFile.extension
+            var attempts = 0;
+
+            while(true){
+                if (outputFile.exists()){
+                    attempts++;
+                    outputFile = File(outputFile.parent, "$name($attempts).$fileExtension")
+                    continue
+                } else {
+                    break
+                }
+            }
+        }
 
         onProgressChange(0.0, exportTag)
 
