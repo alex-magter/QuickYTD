@@ -140,7 +140,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 downloadComplete = isDownloadCompele,
                 error = downloadError,
                 onExit = {
-                    downloadTask = "Starting download..."
+                    downloadTask = "Downloading..."
                     progress = 0.0
                     downloadError = false
                     isDownloadCompele = false
