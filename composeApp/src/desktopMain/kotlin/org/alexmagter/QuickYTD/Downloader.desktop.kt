@@ -41,7 +41,20 @@ actual fun getData(link: String, ifErrorOccurred: (Exception) -> Unit, onResult:
     }
 }
 
+var Cancelling = false
+var downloadProcess: Process? = null
+var outputFile: File? = null
+
 actual fun cancelDownload(){
+    Cancelling = true
+
+    downloadProcess?.destroy()
+
+    CoroutineScope(Dispatchers.IO).launch {
+        delay(100)
+        outputFile?.delete()
+    }
+
 
 }
 
@@ -56,16 +69,27 @@ actual fun download(
     onResult: (Boolean) -> Unit,
     onProgressChange: (Double, String) -> Unit
 ) {
+    Cancelling = false
+
     CoroutineScope(Dispatchers.IO).launch {
-        val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
+        val scriptFile = when (type){
+            "Audio" -> extractScriptFromRes("downloadAudio.py")
+            "Video (muted)" -> extractScriptFromRes("downloadVideoMuted.py")
+            else -> return@launch
+        } ?: return@launch
 
         println("$link $extension $resolution $downloadPath $filename")
 
-        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, filename)
+        outputFile = File(downloadPath, filename)
+
+        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
         processBuilder.redirectErrorStream(true)
 
         try {
+
             val process = processBuilder.start()
+            downloadProcess = process
+
             val output = mutableListOf<String>()
 
             Thread {

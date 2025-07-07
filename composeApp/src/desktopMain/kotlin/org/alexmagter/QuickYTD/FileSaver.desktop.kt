@@ -33,7 +33,7 @@ actual class FileSaver {
 
             val filePath = chooser.selectedFile.absolutePath
 
-            onResult(stream, File(filePath).parent, File(filePath).name)
+            onResult(stream, File(filePath).parent, File(filePath).nameWithoutExtension)
         }
     }
 

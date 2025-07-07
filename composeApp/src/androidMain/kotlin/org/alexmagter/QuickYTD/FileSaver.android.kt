@@ -3,6 +3,7 @@ package org.alexmagter.QuickYTD
 import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import kotlinx.coroutines.CompletableDeferred
@@ -51,6 +52,7 @@ actual class FileSaver (private val activity: ComponentActivity){
                 activity.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
                     if (cursor.moveToFirst()) {
                         name = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+                        Log.d("SelectFolder", "Nombre final del archivo $name")
                     }
                 }
             }

@@ -2,6 +2,8 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -20,7 +22,13 @@ kotlin {
 
     
 
-    jvm("desktop")
+    jvm("desktop") {
+
+    }
+
+    jvmToolchain { // Configura la toolchain para todos los targets JVM de Kotlin
+        languageVersion.set(JavaLanguageVersion.of(21)) // O 17, 21
+    }
     
     sourceSets {
         val desktopMain by getting
@@ -29,6 +37,9 @@ kotlin {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
             implementation(project(":pythonrunner"))
+            implementation(libs.androidx.media3.transformer)
+            implementation(libs.androidx.media3.effect)
+            implementation(libs.androidx.media3.common)
 
         }
         commonMain.dependencies {
@@ -50,7 +61,6 @@ kotlin {
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.java.v301)
             implementation(libs.kotlinx.coroutines.swing.v190)
-
         }
     }
 }
@@ -80,6 +90,13 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    sourceSets {
+        getByName("main"){
+            jniLibs.srcDir("src/androidMain/jniLibs")
+        }
+    }
+
 }
 
 dependencies {
@@ -91,6 +108,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.media3.exoplayer)
+
 
 
     //debugImplementation(compose.uiTooling)
@@ -105,6 +123,13 @@ compose.desktop {
             packageName = "QuickYTD"
             packageVersion = "1.2.0"
             vendor = "Alex_magter"
+
+            jvmArgs += listOf("--module-path", "app/libs") // Ajusta si tus JARs están en otra subcarpeta dentro del bundle
+            // La siguiente línea es para pasar opciones directamente a jpackage,
+
+            args += listOf("--add-modules", "java.base,java.desktop,java.logging,jdk.crypto.ec,jdk.unsupported")
+
+
 
             windows {
                 // Esta es la propiedad válida para Windows
@@ -125,10 +150,6 @@ compose.desktop {
             linux {
                 // iconFile.set(...)
             }
-
-
-
-
         }
     }
 }

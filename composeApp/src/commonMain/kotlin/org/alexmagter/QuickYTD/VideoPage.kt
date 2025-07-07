@@ -300,7 +300,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 isDownloading = true
                                 progress = 0.0
 
-                                val name = videoName + selectedExtension
+                                val name = videoName
 
                                 download(
                                     link = link,

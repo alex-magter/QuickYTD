@@ -1,3 +1,5 @@
+import tempfile
+
 from pytubefix import YouTube
 import requests
 from collections import OrderedDict
@@ -68,6 +70,8 @@ def getData(url, outputPath):
     audios = yt_streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc()
     videos = yt_streams.filter(only_video=True)
 
+    highestAudioFilesize = yt_streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc().first().filesize
+
     # The list of lists that will contain the output
     output = list()
 
@@ -82,7 +86,7 @@ def getData(url, outputPath):
         output.append(newRow)
 
 
-
+    """
     webmVideos = videos
     webmVideos.filter(file_extension='webm')
     webmVideos.order_by("resolution").desc()
@@ -94,10 +98,11 @@ def getData(url, outputPath):
         newRow.append('Video')
         newRow.append('webm')
         newRow.append(webm.resolution)
-        newRow.append(byteToMb(webm.filesize))
+        newRow.append(byteToMb(webm.filesize + highestAudioFilesize))
         if "vp9" in webm.video_codec:
             output.append(newRow)
-
+    """
+    
     mp4Videos = videos
     mp4Videos.filter(file_extension='mp4')
     mp4Videos.order_by("resolution").desc()
@@ -108,15 +113,41 @@ def getData(url, outputPath):
         newRow.append('Video')
         newRow.append('mp4')
         newRow.append(mp4.resolution)
-        newRow.append(byteToMb(mp4.filesize))
+        newRow.append(byteToMb(mp4.filesize + highestAudioFilesize))
 
         if "avc1." in mp4.video_codec: # For 1080p and below we use h264 for compatibility
             output.append(newRow)
         elif mp4.resolution == "1440p" or mp4.resolution == "2160p": # but in above resolution there is no h264 in pytube...
-            output.append(newRow)                                    # ... so we download the available one
+            output.append(newRow)
 
+    """
+    for webm in webmVideos:
+        newRow = list()
+        newRow.append('Video (muted)')
+        newRow.append('webm')
+        newRow.append(webm.resolution)
+        newRow.append(byteToMb(webm.filesize))
+        if "vp9" in webm.video_codec:
+            output.append(newRow)
 
-    listsToCsv(output, outputPath) # And we convert the data to csv to use it in kotlin
+    mp4Videos = videos
+    mp4Videos.filter(file_extension='mp4')
+    mp4Videos.order_by("resolution").desc()
+    """
+
+    for mp4 in mp4Videos:
+        newRow = list()
+        newRow.append('Video (muted)')
+        newRow.append('mp4')
+        newRow.append(mp4.resolution)
+        newRow.append(byteToMb(mp4.filesize))
+
+        if "avc1." in mp4.video_codec:
+            output.append(newRow)
+        elif mp4.resolution == "1440p" or mp4.resolution == "2160p":
+            output.append(newRow)
+
+    listsToCsv(output, outputPath)
 
 def startScript(video_url, context_path):
     outputPath = prepareOutput(context_path)

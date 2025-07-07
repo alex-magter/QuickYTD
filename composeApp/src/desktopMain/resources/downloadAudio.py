@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 
 from pytubefix import YouTube
 
@@ -13,17 +14,38 @@ def on_progress(stream, chunk, bytes_remaining):
 
 def downloadAudio(url, ext, res, pathToDownload, filename):
 
+    global finalTitle
+
     extension = "mp4" if ext == 'm4a' else 'webm'
     yt = YouTube(url,
     on_progress_callback=on_progress)
     streams = yt.streams.filter(only_audio=True, file_extension=extension, abr=res).order_by("abr").desc()
 
-
     title = filename
     cleanTitle = re.sub(r'[<>:"/\\|?*\n¿]', '', title)
 
+    uniqueFileNameFound = False
+    attempts = 0
+
+    name, extension = os.path.splitext(cleanTitle)
+
+    while not uniqueFileNameFound:
+        path = os.path.join(pathToDownload, cleanTitle)
+
+        if os.path.exists(path):
+            attempts += 1
+            cleanTitle = f'{name}({attempts}){extension}'
+        else:
+            if attempts == 0:
+                finalTitle = cleanTitle
+                uniqueFileNameFound = True
+
+            else:
+                finalTitle = f'{name}({attempts}){extension}'
+                uniqueFileNameFound = True
+
     try:
-        streams.first().download(output_path=pathToDownload, filename=filename)
+        streams.first().download(output_path=pathToDownload, filename=finalTitle)
 
     except Exception as e:
         print(e)
@@ -37,4 +59,5 @@ if __name__ == "__main__":
     filename = sys.argv[5]
 
     downloadAudio(video_url, extension, resolution, folderToSave, filename)
+
 
