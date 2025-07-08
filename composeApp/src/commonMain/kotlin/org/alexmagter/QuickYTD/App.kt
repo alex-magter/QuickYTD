@@ -5,11 +5,17 @@ import androidx.compose.animation.expandIn
 import androidx.compose.animation.shrinkOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -23,15 +29,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getResourceUri
+import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-
-
+import quickytd.composeapp.generated.resources.Res
+import quickytd.composeapp.generated.resources.github
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,6 +62,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
         val maxLinkLenght = 90
 
         val scope = rememberCoroutineScope()
+        val uriHandler = LocalUriHandler.current
 
 
         Scaffold(
@@ -116,10 +126,41 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     Text("Buscar")
                 }
 
+
                 LoadingText(isGettingData)
                 NoValidLinkWarning(!isLinkInvalid)
                 ErrorWarning(hadErrorGettingVideo, error)
+
             }
+
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(it)
+            ){
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .align(Alignment.BottomStart) // Alinea la Row a la parte inferior izquierda del Box
+                        .padding(16.dp) // Añade un padding para separarlo de los bordes
+                        .clickable { // Añadir el modificador clickable aquí
+                            uriHandler.openUri("https://github.com/alex-magter")
+                        }
+                ) {
+                    Image(
+                        painter = painterResource(Res.drawable.github),
+                        contentDescription = "GitHub logo",
+                        modifier = Modifier.size(30.dp)
+                    )
+                    Text(
+                        text = "/alex-magter",
+                        color = Color.White,
+                        style = TextStyle(textDecoration = TextDecoration.Underline),
+                        modifier = Modifier.padding(start = 8.dp)
+                    )
+                }
+            }
+
         }
     }
 }
