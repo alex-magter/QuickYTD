@@ -23,6 +23,10 @@ Just paste the link into the text field, select the file, select the desired opt
 - Display the estimated filesize before downloading the file
 - Download directly to downloads or save in another directory
 
+## Legal Disclaimer
+
+This app allows you to download videos, but **it's your responsibility to ensure you have the legal right to do so**. Please don't use this tool to download copyrighted content without explicit permission from its owner. The developers of this app are not responsible for any misuse by users.
+
 ## Screenshots
 
 ![Main screen of the app](./screenshots/main.png)
