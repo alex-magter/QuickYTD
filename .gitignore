@@ -32,4 +32,10 @@ google-services.json
 # Android Profiling
 *.hprof
 .kotlin/sessions/kotlin-compiler-2506478520336932273.salive
+
+#ffmpeg binaries
 /composeApp/src/desktopMain/resources/bin
+
+# build files
+/composeApp/build
+/pythonrunner/build

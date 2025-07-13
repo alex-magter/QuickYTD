@@ -8,7 +8,7 @@
 **QuickYTD** is an application that can be used to download YouTube videos, focussed on giving a simple and fast experience and UI.
 Just paste the link into the text field, select the file, select the desired options and download it!
 
-> QuickYTD uses [**Pytube**](https://github.com/pytube/pytube/tree/master) to interact with YouTube
+> QuickYTD uses [**Pytubefix**](https://github.com/JuanBindez/pytubefix) to interact with YouTube
 
 # Download
 
