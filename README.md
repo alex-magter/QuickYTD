@@ -5,8 +5,8 @@
     <img src="icon.png" alt="Icon" width="200px" />
 </p>
 
-**QuickYTD** is an application that can be used to download YouTube videos, focussed on giving a simple and fast experience and UI.
-Just paste the link into the text field, select the file, select the desired options and download it!
+**QuickYTD** is an application that can be used to download YouTube videos, focused on giving a simple and fast experience and UI.
+Just paste the link into the text field, select the file, select the desired options, and download it!
 
 > QuickYTD uses [**Pytubefix**](https://github.com/JuanBindez/pytubefix) to interact with YouTube
 
@@ -14,13 +14,13 @@ Just paste the link into the text field, select the file, select the desired opt
 
 - **[Latest release](https://github.com/alex-magter/QuickYTD/releases/latest)**
 
-> A desktop version of the app is in development. For now the Android version is avaliable to use and try.
+> A desktop version of the app is in development. For now the Android version is available to use and try.
 
 ## Features
 
 - Download videos and audios from YouTube
-- Select from diferent resolutions to download the file
-- Display the estimated filesize before downloading the file
+- Select from different resolutions to download the file
+- Display the estimated file size before downloading the file
 - Download directly to downloads or save in another directory
 
 ## Legal Disclaimer
