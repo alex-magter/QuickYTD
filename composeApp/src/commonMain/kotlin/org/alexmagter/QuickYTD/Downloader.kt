@@ -20,3 +20,10 @@ expect fun cancelDownload()
 expect fun getData(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (VideoData) -> Unit = {})
 
 expect fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit = {}, onResult: (Boolean) -> Unit = {})
+
+fun sanitizeFileName(fileName: String): String {
+    // Definimos los caracteres prohibidos
+    val forbidden = "[<>:\"/\\\\|?*]".toRegex()
+    // Los reemplazamos por nada (los eliminamos)
+    return fileName.replace(forbidden, "")
+}

@@ -6,6 +6,7 @@ import re
 import tempfile
 import subprocess
 
+global downloadTag
 
 def on_progress(stream, chunk, bytes_remaining):
     total_size = stream.filesize
@@ -13,17 +14,12 @@ def on_progress(stream, chunk, bytes_remaining):
 
     progress = (bytes_downloaded / total_size) * 100
 
-    progress_callback(float(progress), downloadTag)
-
-    if (is_action_cancelled()):
-        raise Exception("Download cancelled")
+    print(progress)
 
 
-def download(url, ext, res, pathToDownload, filenameAudio, filenameVideo):
+def downloadVideo(url, ext, res, pathToDownload, filenameAudio, filenameVideo):
 
     global finalTitle
-    global downloadTag
-
     extension = ext
     downloadTag = ""
 
@@ -32,19 +28,16 @@ def download(url, ext, res, pathToDownload, filenameAudio, filenameVideo):
     streams = yt.streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc()
 
 
-    print("Vamos a descargar el audio...")
 
     downloadTag = "Downloading audio..."
 
     try:
 
         streams.first().download(output_path=pathToDownload, filename=filenameAudio)
-        print(f"Audio downloaded in {pathToDownload} with name: {filenameAudio}")
 
     except Exception as e:
         print(e)
 
-    print("Audio descargado")
 
 
 
@@ -52,16 +45,26 @@ def download(url, ext, res, pathToDownload, filenameAudio, filenameVideo):
                  on_progress_callback=on_progress)
     streams = yt.streams.filter(only_video=True, file_extension=ext, resolution=res).order_by("resolution").desc()
 
-    print("Vamos a descargar el Video...")
 
     downloadTag = "Downloading video..."
 
     try:
 
         streams.first().download(output_path=pathToDownload, filename=filenameVideo)
-        print(f"Audio downloaded in {pathToDownload} with name: {filenameVideo}")
 
     except Exception as e:
         print(e)
 
-    print("Video descargado")
+
+if __name__ == "__main__":
+    video_url = sys.argv[1]
+    extension = sys.argv[2]
+    resolution = sys.argv[3]
+    tempFolder = sys.argv[4]
+    audioFilename = sys.argv[5]
+    videoFilename = sys.argv[6]
+
+    downloadVideo(video_url, extension, resolution, tempFolder, audioFilename, videoFilename)
+
+
+
