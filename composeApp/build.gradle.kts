@@ -118,7 +118,10 @@ compose.desktop {
     application {
         mainClass = "org.alexmagter.QuickYTD.MainKt"
 
+        javaHome = "C:\\Program Files\\Java\\jdk-21"
+
         nativeDistributions {
+
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "QuickYTD"
             packageVersion = "1.2.0"
@@ -128,6 +131,8 @@ compose.desktop {
             // La siguiente línea es para pasar opciones directamente a jpackage,
 
             args += listOf("--add-modules", "java.base,java.desktop,java.logging,jdk.crypto.ec,jdk.unsupported")
+
+            modules("java.compiler", "java.instrument" , "java.sql", "jdk.unsupported")
 
 
 
