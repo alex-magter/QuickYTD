@@ -87,7 +87,7 @@ def getData(url):
         newRow.append(byteToMb(m4a.filesize))
         output.append(newRow)
 
-
+    """
 
     webmVideos = videos
     webmVideos.filter(file_extension='webm')
@@ -103,6 +103,7 @@ def getData(url):
         newRow.append(byteToMb(webm.filesize + highestAudioFilesize))
         if "vp9" in webm.video_codec:
             output.append(newRow)
+    """
 
     mp4Videos = videos
     mp4Videos.filter(file_extension='mp4')
@@ -119,7 +120,9 @@ def getData(url):
         if "avc1." in mp4.video_codec: # For 1080p and below we use h264 for compatibility
             output.append(newRow)
         elif mp4.resolution == "1440p" or mp4.resolution == "2160p": # but in above resolution there is no h264 in pytube...
-            output.append(newRow)                                    # ... so we download the available one
+            output.append(newRow)
+
+    """
 
     # Now we get the values for WebM videos
     # It filters vp9 videos
@@ -131,6 +134,8 @@ def getData(url):
         newRow.append(byteToMb(webm.filesize))
         if "vp9" in webm.video_codec:
             output.append(newRow)
+            
+    """
 
     mp4Videos = videos
     mp4Videos.filter(file_extension='mp4')

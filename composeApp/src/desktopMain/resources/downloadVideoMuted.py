@@ -32,7 +32,7 @@ def downloadVideoMuted(url, ext, res, pathToDownload, filename):
     while not uniqueFileNameFound:
         path = os.path.join(pathToDownload, cleanTitle)
 
-        if os.path.exists(path):
+        if os.path.exists(path) and not os.path.exists(path):
             attempts += 1
             cleanTitle = f'{name}({attempts}){extension}'
         else:

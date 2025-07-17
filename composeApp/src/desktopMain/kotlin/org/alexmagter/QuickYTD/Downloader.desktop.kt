@@ -1,5 +1,6 @@
 package org.alexmagter.QuickYTD
 
+import com.sun.source.tree.TryTree
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -10,6 +11,8 @@ import java.io.OutputStream
 
 
 actual fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit, onResult: (Boolean) -> Unit){
+    println("JAVA_HOME = ${System.getenv("JAVA_HOME")}")
+
     CoroutineScope(Dispatchers.IO).launch {
         val output = runPyScriptFromRes("checkVideo.py", listOf(link))
         val isValid : Boolean
@@ -72,6 +75,21 @@ actual fun download(
     Cancelling = false
 
     CoroutineScope(Dispatchers.IO).launch {
+
+        if (type == "Video"){
+            downloadVideo(
+                link = link,
+                downloadPath = downloadPath,
+                fileName = filename,
+                extension = extension,
+                resolution = resolution,
+                savedAs = savedAs,
+                onResult = onResult,
+                onProgressChange = onProgressChange
+            )
+            return@launch
+        }
+
         val scriptFile = when (type){
             "Audio" -> extractScriptFromRes("downloadAudio.py")
             "Video (muted)" -> extractScriptFromRes("downloadVideoMuted.py")
@@ -80,7 +98,7 @@ actual fun download(
 
         println("$link $extension $resolution $downloadPath $filename")
 
-        outputFile = File(downloadPath, filename)
+        outputFile = File(downloadPath, "$filename.$extension")
 
         val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
         processBuilder.redirectErrorStream(true)
@@ -106,15 +124,119 @@ actual fun download(
 
             process.waitFor()
 
+            if(Cancelling){
+                try {
+                    File(downloadPath, filename).delete()
+                    onResult(true)
+                } catch (e: Exception){
+                    println(e)
+                    onResult(false)
+                }
+                return@launch
+            }
+
             onResult(true)
 
         } catch (e: Exception) {
             onResult(false)
-            null
         }
     }
 }
 
+fun downloadVideo(
+    link: String,
+    downloadPath: String,
+    fileName: String,
+    extension: String,
+    resolution: String,
+    savedAs: Boolean,
+    onResult: (Boolean) -> Unit,
+    onProgressChange: (Double, String) -> Unit
+){
+    val audioFile = Files.createTempFile("tempAudio", ".m4a").toFile()
+    val videoFile = Files.createTempFile("tempVideo", ".$extension").toFile()
+    var output = File(downloadPath, "$fileName.$extension")
+
+    val scriptFile = extractScriptFromRes("downloadVideo.py")
+    if (scriptFile == null) { onResult(false); return }
+
+    val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, audioFile.parent, audioFile.name, videoFile.name)
+    processBuilder.redirectErrorStream(true)
+
+    CoroutineScope(Dispatchers.IO).launch{
+        try {
+            val process = processBuilder.start()
+            downloadProcess = process
+
+            Thread {
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                var line: String?
+
+                while (true) {
+                    line = reader.readLine()
+                    if (line == null) break
+                    onProgressChange(line.toDouble(), "Downloading...")
+                }
+
+            }.start()
+
+            process.waitFor()
+
+            if(Cancelling){
+                try {
+                    audioFile.delete()
+                    videoFile.delete()
+                    onResult(true)
+                } catch (e: Exception){
+                    println(e)
+                    onResult(false)
+                }
+                return@launch
+            }
+
+            if(!savedAs){
+                val name = output.nameWithoutExtension
+                val fileExtension = output.extension
+                var attempts = 0;
+
+                while(true){
+                    if (output.exists()){
+                        attempts++;
+                        output = File(output.parent, "$name($attempts).$fileExtension")
+                        continue
+                    } else {
+                        break
+                    }
+                }
+            }
+
+            println("Calling ffmpeg")
+
+            println("Audio: ${audioFile.absolutePath}, Video: ${videoFile.absolutePath}, Output: ${output.absolutePath}")
+
+            onProgressChange(0.0, "Exporting")
+
+            runFFmpegExe(
+                name = "ffmpeg",
+                audioFile = audioFile,
+                videoFile = videoFile,
+                outputFile = output
+            )
+
+            if (Cancelling) { output.delete() }
+
+            audioFile.delete()
+            videoFile.delete()
+
+            onProgressChange(1.0, "Exporting")
+
+            onResult(true)
+
+        } catch (e: Exception) {
+            onResult(false)
+        }
+    }
+}
 
 fun extractScriptFromRes(fileName: String): File? {
     val inputStream = {}.javaClass.getResourceAsStream("/$fileName") ?: return null
@@ -129,7 +251,7 @@ fun extractScriptFromRes(fileName: String): File? {
     return tempFile
 }
 
-suspend fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList()): scriptOutput?  {
+fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList()): scriptOutput?  {
     val scriptFile = extractScriptFromRes(fileName) ?: return null
 
     val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, *args.toTypedArray())
@@ -140,8 +262,10 @@ suspend fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList(
         val reader = BufferedReader(InputStreamReader(process.inputStream))
 
         val output = mutableListOf<String>()
-        reader.useLines { lines ->
-            output.addAll(lines)
+        var line: String? = reader.readLine()
+        while (line != null) {
+            output.add(line)
+            line = reader.readLine()
         }
 
         process.waitFor()
