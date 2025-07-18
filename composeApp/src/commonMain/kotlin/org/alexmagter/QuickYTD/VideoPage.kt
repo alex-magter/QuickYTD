@@ -347,7 +347,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
                                 scope.launch {
                                     fileSaver.selectFolder("${sanitizeFileName(videoName)}.$selectedExtension",
-                                        "audio/mp4") { stream, path, name ->
+                                        selectedExtension) { stream, path, name ->
                                         isChoosingPath = false
                                         if(path != null && name != null){
                                             isDownloading = true
