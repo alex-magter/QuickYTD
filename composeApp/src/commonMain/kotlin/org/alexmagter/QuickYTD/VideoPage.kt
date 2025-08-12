@@ -53,6 +53,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -77,18 +78,16 @@ val roboto = getRoboto()
 @Preview
 @Composable
 fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
-
-    val videoData = viewModel.videoData
-    val link = videoData.link
-    val thumbnail = remember(videoData.thumbnail) {
-        fileToBitmap(videoData.thumbnail)
-    }
-    val videoName: String = videoData.videoName.readText()
-    val videoChannel: String = videoData.channelName.readText()
-
-
-
     MaterialTheme {
+
+        val videoData = remember { viewModel.videoData }
+        val link = remember { videoData.link }
+        val thumbnail = remember(videoData.thumbnail) {
+            fileToBitmap(videoData.thumbnail)
+        }
+        val videoName: String = videoData.videoName.readText()
+        val videoChannel: String = videoData.channelName.readText()
+
         var theme = "Dark"
 
         val density = LocalDensity.current
@@ -106,23 +105,20 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
         var isVertical by remember { mutableStateOf(false) }
 
-        var progress by remember { mutableStateOf<Double>(0.0) }
+        var progress by remember { mutableDoubleStateOf(0.0) }
         var isDownloading by remember { mutableStateOf(false) }
 
         var isChoosingPath by remember { mutableStateOf(false) }
 
         var downloadTask by remember { mutableStateOf("Starting download...") }
-
         var downloadError by remember { mutableStateOf(false) }
         var isDownloadCompele by remember { mutableStateOf(false) }
         var isDownloadCancelled by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
-            windowWidth.value = with(density) {
-                900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
-                    (windowWidth.value.value * 2f).dp
-                )
-            }
+            windowWidth.value = 900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
+                (windowWidth.value.value * 2f).dp
+            )
         }
 
         Scaffold(
@@ -132,7 +128,6 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 .graphicsLayer()
                 .background(DarkTheme.backgroundColor)
         ) { innerPadding ->
-
 
             DownloadWindow(downloading = isDownloading,
                 label = downloadTask,

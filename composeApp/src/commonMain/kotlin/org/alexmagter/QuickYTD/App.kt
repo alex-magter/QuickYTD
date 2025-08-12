@@ -8,6 +8,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,7 +72,6 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
 
         val scope = rememberCoroutineScope()
         val uriHandler = LocalUriHandler.current
-
 
         Scaffold(
             containerColor = DarkTheme.backgroundColor,

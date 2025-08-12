@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+
 object DarkTheme {
     val backgroundColor: Color = Color(25, 25, 25, 255)
     val secondaryBackgroundColor: Color = Color(20, 20, 20, 255)
