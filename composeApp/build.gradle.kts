@@ -114,6 +114,41 @@ dependencies {
     //debugImplementation(compose.uiTooling)
 }
 
+tasks.named("desktopProcessResources", org.gradle.language.jvm.tasks.ProcessResources::class.java) {
+    // La tarea por defecto ya tiene como fuente src/desktopMain/resources.
+    // Solo necesitamos ajustar qué de esa fuente se incluye en la salida.
+
+    val os = OperatingSystem.current()
+
+    // Definimos los patrones de exclusión para las carpetas de otros SOs.
+    // Estos patrones son relativos a la raíz de src/desktopMain/resources.
+    val excludes = mutableListOf<String>()
+    if (!os.isWindows) {
+        excludes.add("bin/windows/**")
+    }
+    if (!os.isLinux) {
+        excludes.add("bin/linux/**")
+    }
+    if (!os.isMacOsX) {
+        excludes.add("bin/macos/**")
+    }
+
+    // Aplicamos las exclusiones.
+    // Esto asegura que solo se copien los archivos comunes de src/desktopMain/resources
+    // y la carpeta específica del SO actual desde src/desktopMain/resources.
+    exclude(excludes)
+
+    // No necesitamos 'include' explícitos aquí si solo estamos excluyendo
+    // las carpetas de los otros SOs. Todo lo demás de src/desktopMain/resources
+    // (archivos en su raíz + la carpeta del SO actual + otras carpetas comunes) se incluirá.
+
+    // Por ejemplo, si estás en Windows:
+    // - Se excluye "linux/**" y "macos/**".
+    // - src/desktopMain/resources/commonFile.txt se incluye.
+    // - src/desktopMain/resources/windows/** se incluye.
+    // - src/desktopMain/resources/anotherDesktopCommonFolder/** se incluye.
+}
+
 compose.desktop {
     application {
         mainClass = "org.alexmagter.QuickYTD.MainKt"
