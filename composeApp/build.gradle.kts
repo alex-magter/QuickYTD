@@ -1,6 +1,7 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.gradle.internal.os.OperatingSystem
 
 
 
@@ -23,7 +24,10 @@ kotlin {
     
 
     jvm("desktop") {
-
+        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21) // o JVM_11, o incluso JVM_21 si está disponible como enum
+        }
     }
 
     jvmToolchain { // Configura la toolchain para todos los targets JVM de Kotlin
@@ -40,6 +44,15 @@ kotlin {
             implementation(libs.androidx.media3.transformer)
             implementation(libs.androidx.media3.effect)
             implementation(libs.androidx.media3.common)
+            implementation(libs.androidx.media3.exoplayer)
+
+            implementation(libs.androidx.material3.android)
+            implementation(libs.kotlinx.coroutines.android)
+            implementation(libs.androidx.animation.android)
+
+
+
+
 
         }
         commonMain.dependencies {
@@ -51,16 +64,17 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
-            implementation(libs.androidx.material3)
-            implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
+            //implementation(libs.androidx.material3)
+            //implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
+            implementation(libs.kotlinx.coroutines.core)
+
         }
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.ktor.client.java.v301)
-            implementation(libs.kotlinx.coroutines.swing.v190)
+            /*implementation(libs.kotlinx.coroutines.swing.v190)*/
         }
     }
 }
@@ -100,14 +114,9 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.material3.android)
     implementation(libs.androidx.compose.bom)
-    implementation(libs.androidx.animation.android)
-    implementation(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
-    implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.navigation.runtime.ktx)
-    implementation(libs.androidx.media3.exoplayer)
+    /*implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation.runtime.ktx)*/
 
 
 
@@ -153,42 +162,31 @@ compose.desktop {
     application {
         mainClass = "org.alexmagter.QuickYTD.MainKt"
 
-        javaHome = "C:\\Program Files\\Java\\jdk-21"
 
         nativeDistributions {
 
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
+            targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.AppImage)
             packageName = "QuickYTD"
             packageVersion = "1.2.0"
             vendor = "Alex_magter"
 
-            jvmArgs += listOf("--module-path", "app/libs") // Ajusta si tus JARs están en otra subcarpeta dentro del bundle
-            // La siguiente línea es para pasar opciones directamente a jpackage,
-
-            args += listOf("--add-modules", "java.base,java.desktop,java.logging,jdk.crypto.ec,jdk.unsupported")
-
-            modules("java.compiler", "java.instrument" , "java.sql", "jdk.unsupported")
-
-
+            val iconBaseDir = project.projectDir.resolve("src/desktopMain/resources/icons")
 
             windows {
-                // Esta es la propiedad válida para Windows
 
-                includeAllModules = true
                 menuGroup = "AlexMagter"
-                // Opcional: define nombre del acceso directo
                 shortcut = true
 
-                // iconFile.set(...)
+                iconFile.set(iconBaseDir.resolve("logo.ico"))
             }
 
             macOS {
                 bundleID = "com.miempresa.miapp"
-                // iconFile.set(...)
+                iconFile.set(iconBaseDir.resolve("logo.icns"))
             }
 
             linux {
-                // iconFile.set(...)
+                iconFile.set(iconBaseDir.resolve("logo.png"))
             }
         }
     }
