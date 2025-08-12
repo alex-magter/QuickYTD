@@ -7,6 +7,7 @@ import java.io.FileOutputStream
 import java.io.InputStreamReader
 import java.nio.file.Files
 import kotlinx.coroutines.*
+import org.alexmagter.QuickYTD.FFmpegRunner.runFFmpegExe
 import java.io.OutputStream
 
 
@@ -168,17 +169,21 @@ fun downloadVideo(
             val process = processBuilder.start()
             downloadProcess = process
 
-            Thread {
-                val reader = BufferedReader(InputStreamReader(process.inputStream))
-                var line: String?
 
-                while (true) {
-                    line = reader.readLine()
-                    if (line == null) break
+            val reader = BufferedReader(InputStreamReader(process.inputStream))
+            var line: String?
+
+            while (true) {
+                line = reader.readLine()
+                if (line == null) break
+
+                withContext(Dispatchers.Main){
                     onProgressChange(line.toDouble(), "Downloading...")
                 }
 
-            }.start()
+            }
+
+
 
             process.waitFor()
 
@@ -216,12 +221,14 @@ fun downloadVideo(
 
             onProgressChange(0.0, "Exporting")
 
-            runFFmpegExe(
+            val result = runFFmpegExe(
                 name = "ffmpeg",
                 audioFile = audioFile,
                 videoFile = videoFile,
                 outputFile = output
             )
+
+            if(result == false) { onResult(false); return@launch; }
 
             if (Cancelling) { output.delete() }
 
