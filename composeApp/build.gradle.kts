@@ -133,7 +133,7 @@ tasks.named("desktopProcessResources", org.gradle.language.jvm.tasks.ProcessReso
     // Estos patrones son relativos a la raíz de src/desktopMain/resources.
     val excludes = mutableListOf<String>()
     if (!os.isWindows) {
-        excludes.add("bin/windows/**")
+        excludes.add("bin/win/**")
     }
     if (!os.isLinux) {
         excludes.add("bin/linux/**")
