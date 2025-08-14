@@ -55,13 +55,15 @@ dependencies {
 
 chaquopy {
     defaultConfig {
+        buildPython = listOf("C:\\Users\\alext\\AppData\\Local\\Programs\\Python\\Python311\\python.exe") // usa el Python que sabes que funcionaba antes
+
         pip {
-            install("pytubefix")
+            install("pytubefix==9.3.0")
             install("requests")
             // Añade aquí otras dependencias que necesites
         }
 
-        version = "3.12"
+        version = "3.11"
     }
     productFlavors { }
     sourceSets { }
