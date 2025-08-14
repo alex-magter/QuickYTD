@@ -87,8 +87,8 @@ android {
         applicationId = "org.alexmagter.QuickYTD"
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 3
+        versionName = "1.1.0"
     }
     packaging {
         resources {
@@ -167,7 +167,7 @@ compose.desktop {
 
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.AppImage)
             packageName = "QuickYTD"
-            packageVersion = "1.2.0"
+            packageVersion = "1.1.0"
             vendor = "Alex_magter"
 
             val iconBaseDir = project.projectDir.resolve("src/desktopMain/resources/icons")
