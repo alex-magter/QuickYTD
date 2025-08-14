@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<resources>
+    <string name="put_link">Put your link here</string>
+    <string name="search">Search</string>
+    <string name="invalid_link">The link is not valid</string>
+    <string name="loading">Loading data...</string>
+    <string name="content_type">Choose the download type</string>
+    <string name="extension">Choose the extension</string>
+    <string name="quality">Choose the quality</string>
+    <string name="estimated_file-size">Estimated file size</string>
+    <string name="send_to_downloads">Send to downloads</string>
+    <string name="save_as">Save as</string>
+    <string name="audio">Audio</string>
+    <string name="video">Video</string>
+    <string name="video_muted">Video (muted)</string>
+</resources>

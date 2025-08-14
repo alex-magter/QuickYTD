@@ -1,0 +1,324 @@
+package org.alexmagter.QuickYTD
+
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.alexmagter.QuickYTD.FFmpegRunner.runFFmpegExe
+import java.io.BufferedReader
+import java.io.File
+import java.io.InputStreamReader
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
+
+actual class Video actual constructor(private val linkParam: String) {
+
+    init {
+
+    }
+
+    actual val link: String = linkParam
+
+    private lateinit var videoData: VideoData
+
+    actual fun getFileData(): File {
+        return videoData.fileData
+    }
+
+    actual fun getName(): File {
+        return videoData.videoName
+    }
+
+    actual fun getChannel(): File {
+        return videoData.channelName
+    }
+
+    actual fun getThumbnail(): File {
+        return videoData.thumbnail
+    }
+
+    actual var downloadPath: String = ""
+    actual var filename: String = ""
+    actual var extension: String = ""
+    actual var resolution: String  = ""
+    actual var isSavedAs: Boolean = false
+    actual var downloadType: String = ""
+
+    actual fun getData() {
+        val output = runPyScriptFromRes("getData.py", listOf(link))
+
+        val data = VideoData(output!!.path, link)
+        videoData = data
+
+    }
+
+    actual fun download(
+        onResult: (Boolean) -> Unit,
+        onProgressChange: (Double, String) -> Unit
+    ) {
+        if(downloadType == "Audio"){
+            downloadAudio(
+                onProgressChange = onProgressChange,
+                onResult = onResult
+            )
+        } else if(downloadType == "Video"){
+            downloadVideo(
+                onProgressChange = onProgressChange,
+                onResult = onResult
+            )
+        } else if (downloadPath == "Video (muted)"){
+            downloadMutedVideo(
+                onProgressChange = onProgressChange,
+                onResult = onResult
+            )
+        } else {
+            throw IllegalStateException("Couldn't detect selected type")
+        }
+    }
+
+    private fun downloadAudio(
+        onResult: (Boolean) -> Unit,
+        onProgressChange: (Double, String) -> Unit
+    ) {
+        Cancelling = false
+
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
+
+            println("$link $extension $resolution $downloadPath $filename")
+
+            outputFile = File(downloadPath, "$filename.$extension")
+
+            val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
+            processBuilder.redirectErrorStream(true)
+
+            try {
+
+                val process = processBuilder.start()
+                downloadProcess = process
+
+                val output = mutableListOf<String>()
+
+                Thread {
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var line: String?
+
+                    while (true) {
+                        line = reader.readLine()
+                        if (line == null) break
+                        onProgressChange(line.toDouble(), "Downloading...")
+                    }
+
+                }.start()
+
+                process.waitFor()
+
+                if(Cancelling){
+                    try {
+                        File(downloadPath, filename).delete()
+                        onResult(true)
+                    } catch (e: Exception){
+                        println(e)
+                        onResult(false)
+                    }
+                    return@launch
+                }
+
+                onResult(true)
+
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
+    private fun downloadMutedVideo(
+        onResult: (Boolean) -> Unit,
+        onProgressChange: (Double, String) -> Unit
+    ) {
+        Cancelling = false
+
+        CoroutineScope(Dispatchers.IO).launch {
+
+            val scriptFile = extractScriptFromRes("downloadVideoMuted.py") ?: return@launch
+
+            println("$link $extension $resolution $downloadPath $filename")
+
+            outputFile = File(downloadPath, "$filename.$extension")
+
+            val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
+            processBuilder.redirectErrorStream(true)
+
+            try {
+
+                val process = processBuilder.start()
+                downloadProcess = process
+
+                val output = mutableListOf<String>()
+
+                Thread {
+                    val reader = BufferedReader(InputStreamReader(process.inputStream))
+                    var line: String?
+
+                    while (true) {
+                        line = reader.readLine()
+                        if (line == null) break
+                        onProgressChange(line.toDouble(), "Downloading...")
+                    }
+
+                }.start()
+
+                process.waitFor()
+
+                if(Cancelling){
+                    try {
+                        File(downloadPath, filename).delete()
+                        onResult(true)
+                    } catch (e: Exception){
+                        println(e)
+                        onResult(false)
+                    }
+                    return@launch
+                }
+
+                onResult(true)
+
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
+    private fun downloadVideo(
+        onResult: (Boolean) -> Unit,
+        onProgressChange: (Double, String) -> Unit
+    ) {
+        val audioFile = Files.createTempFile("tempAudio", ".m4a").toFile()
+        val videoFile = Files.createTempFile("tempVideo", ".$extension").toFile()
+        var output = File(downloadPath, "$filename.$extension")
+
+        val scriptFile = extractScriptFromRes("downloadVideo.py")
+        if (scriptFile == null) { onResult(false); return }
+
+        val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, audioFile.parent, audioFile.name, videoFile.name)
+        processBuilder.redirectErrorStream(true)
+
+        CoroutineScope(Dispatchers.IO).launch{
+            try {
+                val process = processBuilder.start()
+                downloadProcess = process
+
+
+                val reader = BufferedReader(InputStreamReader(process.inputStream))
+                var line: String?
+
+                while (true) {
+                    line = reader.readLine()
+                    if (line == null) break
+
+                    withContext(Dispatchers.Main){
+                        onProgressChange(line.toDouble(), "Downloading...")
+                    }
+
+                }
+
+                process.waitFor()
+
+                if(Cancelling){
+                    try {
+                        audioFile.delete()
+                        videoFile.delete()
+                        onResult(true)
+                    } catch (e: Exception){
+                        println(e)
+                        onResult(false)
+                    }
+                    return@launch
+                }
+
+                if(!isSavedAs){
+                    val name = output.nameWithoutExtension
+                    val fileExtension = output.extension
+                    var attempts = 0;
+
+                    while(true){
+                        if (output.exists()){
+                            attempts++;
+                            output = File(output.parent, "$name($attempts).$fileExtension")
+                            continue
+                        } else {
+                            break
+                        }
+                    }
+                }
+
+                println("Calling ffmpeg")
+
+                println("Audio: ${audioFile.absolutePath}, Video: ${videoFile.absolutePath}, Output: ${output.absolutePath}")
+
+                onProgressChange(0.0, "Exporting")
+
+                val result = runFFmpegExe(
+                    name = "ffmpeg",
+                    audioFile = audioFile,
+                    videoFile = videoFile,
+                    outputFile = output
+                )
+
+                if(result == false) { onResult(false); return@launch; }
+
+                if (Cancelling) { output.delete() }
+
+                audioFile.delete()
+                videoFile.delete()
+
+                onProgressChange(1.0, "Exporting")
+
+                onResult(true)
+
+            } catch (e: Exception) {
+                onResult(false)
+            }
+        }
+    }
+
+    actual fun downloadThumbnail(path: String, onResult: () -> Unit){
+        val targetFile: File = File(path, "thumbnail.jpg")
+
+        val source: Path = Paths.get(getThumbnail().absolutePath)
+        val target: Path = Paths.get(targetFile.absolutePath)
+
+        CoroutineScope(Dispatchers.IO).launch {
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING)
+            withContext(Dispatchers.Main){
+                onResult()
+            }
+        }
+    }
+
+    actual companion object {
+        actual fun checkVideo(
+            link: String,
+            ifErrorOccurred: (Exception) -> Unit,
+            onResult: (Boolean) -> Unit
+        ){
+            CoroutineScope(Dispatchers.IO).launch {
+                val output = runPyScriptFromRes("checkVideo.py", listOf(link))
+                val isValid : Boolean
+                if(output != null){
+                    isValid = output.data[0] == "valid"
+                } else {
+                    isValid = false
+                }
+
+                // Volvemos al hilo principal para actualizar la UI
+                withContext(Dispatchers.Main) {
+                    onResult(isValid)  // Llamamos al callback con los datos obtenidos
+                }
+            }
+        }
+    }
+}

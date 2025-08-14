@@ -10,9 +10,6 @@ import kotlinx.coroutines.CompletableDeferred
 import java.io.OutputStream
 
 actual class FileSaver (private val activity: ComponentActivity){
-
-
-
     actual fun getDownloadsFolder(): String {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         return downloadsDir.absolutePath

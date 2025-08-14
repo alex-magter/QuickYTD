@@ -43,13 +43,22 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.getResourceUri
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import quickytd.composeapp.generated.resources.Res
 import quickytd.composeapp.generated.resources.github
+import quickytd.composeapp.generated.resources.invalid_link
+import quickytd.composeapp.generated.resources.loading
+import quickytd.composeapp.generated.resources.put_link
+import quickytd.composeapp.generated.resources.search
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -123,12 +132,12 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     modifier = Modifier
                         .width(windowWidth.value)
                         .padding(8.dp, 0.dp),
-                    placeholder = { Text("Enter the link here", color = Color.Gray) },
+                    placeholder = { Text(stringResource(Res.string.put_link), color = Color.Gray) },
                 )
 
                 Button(
                     onClick = {
-                        checkVideo(
+                        Video.checkVideo(
                             link = link,
                             ifErrorOccurred = {
                                 hadErrorGettingVideo = true
@@ -138,17 +147,16 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                                 if (result) {
                                     isGettingData = true
 
-                                    scope.launch {
-                                        if(isAndroid()){
-                                            delay(350)
-                                        } else {
-                                            delay(0)
-                                        }
+                                    CoroutineScope(Dispatchers.IO).launch {
 
-                                        getData(link) { data ->
-                                            viewModel.videoData = data
+                                        val video = Video(link)
+                                        video.getData()
+
+                                        withContext(Dispatchers.Main){
+                                            viewModel.video = video
                                             navController.navigate("VideoPage")
                                         }
+
                                     }
                                 }
                             }
@@ -156,7 +164,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     enabled = !isGettingData,
                     colors = DarkTheme.SearcbButtonColors(!isGettingData)
                 ){
-                    Text("Search")
+                    Text(stringResource(Res.string.search))
                 }
 
 
@@ -206,7 +214,7 @@ fun LoadingText(isLoading: Boolean) {
         exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
     ) {
         Text(
-            text = "Cargando datos...",
+            text = "${stringResource(Res.string.loading)}...",
             color = Color.Gray
         )
     }
@@ -220,7 +228,7 @@ fun NoValidLinkWarning(valid: Boolean) {
         exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
     ) {
         Text(
-            text = "El link no es válido",
+            text = stringResource(Res.string.invalid_link),
             color = Color.Red
         )
     }

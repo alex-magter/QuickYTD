@@ -12,6 +12,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,6 +31,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SaveAs
@@ -65,7 +67,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.window.Dialog
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import quickytd.composeapp.generated.resources.Res
+import quickytd.composeapp.generated.resources.content_type
+import quickytd.composeapp.generated.resources.estimated_file_size
+import quickytd.composeapp.generated.resources.extension
+import quickytd.composeapp.generated.resources.quality
+import quickytd.composeapp.generated.resources.save_as
+import quickytd.composeapp.generated.resources.send_to_downloads
 import java.io.File
 
 
@@ -80,13 +90,13 @@ val roboto = getRoboto()
 fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
     MaterialTheme {
 
-        val videoData = remember { viewModel.videoData }
-        val link = remember { videoData.link }
-        val thumbnail = remember(videoData.thumbnail) {
-            fileToBitmap(videoData.thumbnail)
+        val video = remember { viewModel.video }
+        val link = remember { video.link }
+        val thumbnail = remember(video.getThumbnail()) {
+            fileToBitmap(video.getThumbnail())
         }
-        val videoName: String = videoData.videoName.readText()
-        val videoChannel: String = videoData.channelName.readText()
+        val videoName: String = video.getName().readText()
+        val videoChannel: String = video.getChannel().readText()
 
         var theme = "Dark"
 
@@ -94,13 +104,13 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
         val windowWidth = remember { mutableStateOf(900.dp) }
 
         var selectedType by remember { mutableStateOf<String>("") }
-        val contentTypes = getContentTypes(videoDataFile = videoData.fileData)
+        val contentTypes = getContentTypes(videoDataFile = video.getFileData())
 
         var selectedExtension by remember { mutableStateOf<String>("") }
-        var extensionTypes = getContentExtensions(videoDataFile = videoData.fileData, contentType = selectedType)
+        var extensionTypes = getContentExtensions(videoDataFile = video.getFileData(), contentType = selectedType)
 
         var selectedResolution by remember { mutableStateOf<String>("") }
-        var resolutions = getContentResolucions(videoDataFile = videoData.fileData, extension = selectedExtension)
+        var resolutions = getContentResolucions(videoDataFile = video.getFileData(), extension = selectedExtension)
         var videoSize by remember { mutableStateOf<String>("") }
 
         var isVertical by remember { mutableStateOf(false) }
@@ -167,16 +177,56 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                     ) {
                         Spacer( Modifier.height(3.dp) )
                         if(thumbnail != null) {
-                            Image(
-                                bitmap = thumbnail                            ,
-                                contentDescription = "TODO",
+                            Box(
                                 modifier = Modifier
+                                    .fillMaxWidth()
                                     .aspectRatio(16f/9f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .fillMaxWidth(),
-                                alignment = Alignment.Center
-                            )
+
+                            ){
+                                Image(
+                                    bitmap = thumbnail                            ,
+                                    contentDescription = "TODO",
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .fillMaxSize(),
+                                    alignment = Alignment.Center
+                                )
+
+                                var isThumbnailDownloaded by remember { mutableStateOf(false) }
+                                var isDownloadingThumbnail by remember { mutableStateOf(false) }
+
+                                Button(
+                                    onClick = {
+                                        video.downloadThumbnail(fileSaver.getDownloadsFolder()) {
+                                            isThumbnailDownloaded = true
+                                            isDownloadingThumbnail = false
+                                        }
+                                    },
+                                    enabled = !isDownloadingThumbnail,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(5.dp)
+                                        .size(50.dp)
+                                        .border(
+                                            width = 1.5.dp,                // Grosor del borde
+                                            color = Color.DarkGray,           // Color del borde
+                                            shape = RoundedCornerShape(15.dp) // Forma del borde
+                                        ),
+                                    shape = RoundedCornerShape(15.dp),
+                                    colors = DarkTheme.ButtonColors(!isDownloadingThumbnail),
+                                    contentPadding = PaddingValues(1.dp)
+                                ) {
+                                    if(isThumbnailDownloaded){
+                                        Icon(Icons.Filled.Check,
+                                            contentDescription = "Thumbnail Downloaded")
+                                    } else {
+                                        Icon(Icons.Filled.Download,
+                                            contentDescription = "Download thumbnail")
+                                    }
+                                }
+                            }
                         }
+
 
                         Text(
                             text = videoName ?: "",
@@ -199,7 +249,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         Spacer( Modifier.height(3.dp) )
 
                         Dropdown(
-                            label = "Choose content type",
+                            label = stringResource(Res.string.content_type),
                             elements = contentTypes,
                             selectedValue = selectedType,
                             onValueChange = {
@@ -207,7 +257,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 selectedExtension = ""
                                 selectedResolution = ""
 
-                                extensionTypes = getContentExtensions(videoDataFile = videoData.fileData, contentType = selectedType)
+                                extensionTypes = getContentExtensions(videoDataFile = video.getFileData(), contentType = selectedType)
                             }
                         )
 
@@ -217,13 +267,14 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         ){
                             Column {
                                 Dropdown(
-                                    label = "Choose extension",
+                                    label = stringResource(Res.string.extension),
                                     elements = extensionTypes,
                                     selectedValue = selectedExtension,
+                                    isOpenedByDefault = true,
                                     onValueChange = {
                                         selectedExtension = it ?: ""
                                         selectedResolution = ""
-                                        resolutions = getContentResolucions(videoDataFile = videoData.fileData, extension = selectedExtension)
+                                        resolutions = getContentResolucions(videoDataFile = video.getFileData(), extension = selectedExtension)
                                     }
                                 )
 
@@ -233,15 +284,16 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
                                     Column {
                                         Dropdown(
-                                            label = "Choose quality",
+                                            label = stringResource(Res.string.quality),
                                             elements = resolutions,
-                                            selectedValue = selectedResolution
+                                            selectedValue = selectedResolution,
+                                            isOpenedByDefault = true
                                         ) {
                                             selectedResolution = it ?: ""
 
 
                                             videoSize = getSize(
-                                                videoDataFile = videoData.fileData,
+                                                videoDataFile = video.getFileData(),
                                                 contentType = selectedType,
                                                 extension = selectedExtension,
                                                 resolution = selectedResolution
@@ -268,7 +320,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
 
-                        fun onResult( successful: Boolean ){
+                        val onResult: (Boolean) -> Unit = { successful ->
                             isDownloadCompele = true
 
                             if(successful){
@@ -284,37 +336,31 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                             }
                         }
 
-                        fun onProgress(taskProgress: Double, task: String){
+                        val onProgress: (Double, String) -> Unit = { taskProgress, task ->
                             progress = taskProgress/100;
                             print(progress); print("\n")
                             downloadTask = task
                         }
 
+                        val onClick: () -> Unit = {
+                            isDownloading = true
+                            progress = 0.0
+
+                            val name = videoName
+
+                            video.extension = selectedExtension
+                            video.resolution = selectedResolution
+                            video.downloadType = selectedType
+
+                            video.download(onResult, onProgress)
+                        }
+
                         Button(
                             onClick = {
-                                isDownloading = true
-                                progress = 0.0
-
-                                val name = videoName
-
-                                download(
-                                    link = link,
-                                    downloadPath = fileSaver.getDownloadsFolder(),
-                                    filename = sanitizeFileName(name),
-                                    type = selectedType,
-                                    extension = selectedExtension,
-                                    resolution = selectedResolution,
-                                    savedAs = false,
-                                    onResult = { successful ->
-
-                                        onResult(successful)
-
-                                    },
-                                    onProgressChange = { taskProgress, task ->
-
-                                        onProgress(taskProgress, task)
-                                    }
-                                )
+                                video.downloadPath = fileSaver.getDownloadsFolder()
+                                video.filename = sanitizeFileName(videoName)
+                                video.isSavedAs = false
+                                onClick()
                             },
                             enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
@@ -328,15 +374,14 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Send to downloads")
+                                Text(stringResource(Res.string.send_to_downloads))
                                 Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.Download, contentDescription = "Descargar")
+                                Icon(Icons.Filled.Download, contentDescription = "DownloadButton")
                             }
                         }
 
                         val scope = rememberCoroutineScope()
                         Button(
-
                             onClick = {
                                 isChoosingPath = true
 
@@ -345,29 +390,10 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                         selectedExtension) { stream, path, name ->
                                         isChoosingPath = false
                                         if(path != null && name != null){
-                                            isDownloading = true
-                                            progress = 0.0
-
-                                            println(path)
-
-                                            download(
-                                                link = link,
-                                                downloadPath = path,
-                                                filename = name,
-                                                type = selectedType,
-                                                extension = selectedExtension,
-                                                resolution = selectedResolution,
-                                                savedAs = true,
-                                                onProgressChange = { taskProgress, task ->
-
-                                                    onProgress(taskProgress, task)
-
-                                                },
-                                                onResult = { successful ->
-
-                                                    onResult(successful)
-                                                }
-                                            )
+                                            video.downloadPath = path
+                                            video.filename = sanitizeFileName(name)
+                                            video.isSavedAs = true
+                                            onClick()
                                         }
                                     }
                                 }
@@ -384,9 +410,9 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Save as")
+                                Text(stringResource(Res.string.save_as))
                                 Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.SaveAs, contentDescription = "Compartir")
+                                Icon(Icons.Filled.SaveAs, contentDescription = "Save as")
                             }
                         }
                     }
@@ -398,9 +424,9 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Dropdown(label: String, elements: List<String>, selectedValue: String, onValueChange: (String?) -> Unit = { }){
+fun Dropdown(label: String, elements: List<String>, selectedValue: String, isOpenedByDefault: Boolean = false, onValueChange: (String?) -> Unit = { }){
 
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(isOpenedByDefault) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -447,7 +473,7 @@ fun FileSize(size: String, areFieldsFilled: Boolean) {
         exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut( shrinkTowards = Alignment.Center )
     ) {
         Text(
-            text = "Estimated filesize: $size",
+            text = "${stringResource(Res.string.estimated_file_size)}: $size",
             color = Color.White,
             modifier = Modifier.padding(5.dp)
         )

@@ -169,7 +169,7 @@ actual fun download(
 
 
 
-    downloadThread = CoroutineScope(Dispatchers.IO).launch {
+    CoroutineScope(Dispatchers.IO).launch {
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(context))
         }
