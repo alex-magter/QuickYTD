@@ -7,7 +7,7 @@ import os
 
 # Create the folder that will contain the output files
 def prepareOutput():
-    temp_path = os.environ.get('TEMP')
+    temp_path = os.getcwd()
     os.chdir(temp_path)
 
     os.path.join(temp_path, 'dataOutput')

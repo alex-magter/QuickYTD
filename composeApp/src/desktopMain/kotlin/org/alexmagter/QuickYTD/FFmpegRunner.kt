@@ -16,7 +16,7 @@ fun getOS(): String {
     }
 }
 
-fun extractExecutablaByOS(name: String): File?{
+fun extractExecutableByOS(name: String): File?{
     val folder = when(getOS()){
         "Windows" -> "win"
         "Mac" -> "macos"
@@ -37,16 +37,19 @@ fun extractExecutablaByOS(name: String): File?{
     val tempFile = Files.createTempFile("executable_temp", extension).toFile()
     tempFile.deleteOnExit() // Se eliminará automáticamente al salir
 
+    val workingDir = System.getProperty("user.dir")
+    val targetFile = File(workingDir, "$finalName$extension")
+
     inputStream.use { input ->
-        FileOutputStream(tempFile).use { output ->
+        FileOutputStream(targetFile).use { output ->
             input.copyTo(output)
         }
     }
-    return tempFile
+    return targetFile
 }
 
 fun getVideoDuration(videoFile: File): Double{
-    val executable = extractExecutablaByOS("FFprobe")
+    val executable = extractExecutableByOS("FFprobe")
 
     val process = ProcessBuilder(
         executable?.absolutePath, "-v", "error",
@@ -78,7 +81,7 @@ object FFmpegRunner {
         //val exeFile = extractExecutablaByOS(name) ?: return false
 
         val exeFile = if(FFmpegPath.isResource){
-            extractExecutablaByOS(name) ?: return false
+            extractExecutableByOS(name) ?: return false
         } else {
             File(FFmpegPath.path)
         }

@@ -691,7 +691,7 @@ actual class Video actual constructor(linkParam: String) {
 
     actual fun downloadThumbnail(path: String, onResult: () -> Unit){
         val source = getThumbnail()
-        val targetFile = File(path, "thumbnail.jpg")
+        val targetFile = File(path, "video_thumbnail.jpg")
 
 
         CoroutineScope(Dispatchers.IO).launch {

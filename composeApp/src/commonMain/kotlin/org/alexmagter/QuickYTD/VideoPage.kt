@@ -13,6 +13,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -28,8 +32,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -55,6 +63,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -62,14 +71,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.window.Dialog
+import androidx.navigation.NavController
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import quickytd.composeapp.generated.resources.Res
+import quickytd.composeapp.generated.resources.back
 import quickytd.composeapp.generated.resources.content_type
 import quickytd.composeapp.generated.resources.estimated_file_size
 import quickytd.composeapp.generated.resources.extension
@@ -87,7 +100,7 @@ val roboto = getRoboto()
 )
 @Preview
 @Composable
-fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
+fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSaver: FileSaver) {
     MaterialTheme {
 
         val video = remember { viewModel.video }
@@ -171,10 +184,16 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         .align(Alignment.Center) // Centrado en el medio
                         .padding(16.dp) // Padding opcional dentro del contenido
                 ) {
+                    val scrollState = rememberScrollState() // mantiene la posición del scroll
 
                     Column (
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .verticalScroll(scrollState)
                     ) {
+                        BackButton {
+                            navController.popBackStack()
+                        }
                         Spacer( Modifier.height(3.dp) )
                         if(thumbnail != null) {
                             Box(
@@ -419,6 +438,36 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun BackButton(
+    onClick: () -> Unit = {}
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp, top = 8.dp, bottom = 8.dp) // opcional, para que respire
+            .clickable(onClick = onClick)
+            .hoverable(interactionSource = interactionSource)
+            .pointerHoverIcon(PointerIcon.Hand),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val color: () -> Color = { if (isHovered) Color.LightGray else Color.White }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Go back",
+            tint = color()
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = stringResource(Res.string.back),
+            color = color(),
+        )
     }
 }
 

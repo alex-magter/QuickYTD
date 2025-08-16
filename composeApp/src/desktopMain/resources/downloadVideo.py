@@ -1,10 +1,7 @@
 import sys
-import os
 
 from pytubefix import YouTube
-import re
-import tempfile
-import subprocess
+
 
 global downloadTag
 
@@ -33,7 +30,7 @@ def downloadVideo(url, ext, res, pathToDownload, filenameAudio, filenameVideo):
 
     yt = YouTube(url,
                  on_progress_callback=on_progress_audio)
-    streams = yt.streams.filter(only_audio=True, file_extension="mp4").order_by("abr").desc()
+    streams = yt.streams.get_default_audio_track().filter(only_audio=True, file_extension="mp4").order_by("abr").desc()
 
 
 

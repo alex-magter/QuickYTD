@@ -1,6 +1,5 @@
 package org.alexmagter.QuickYTD
 
-import com.sun.source.tree.TryTree
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -8,7 +7,6 @@ import java.io.InputStreamReader
 import java.nio.file.Files
 import kotlinx.coroutines.*
 import org.alexmagter.QuickYTD.FFmpegRunner.runFFmpegExe
-import java.io.OutputStream
 
 
 actual fun checkVideo(link: String, ifErrorOccurred: (Exception) -> Unit, onResult: (Boolean) -> Unit){
@@ -247,21 +245,25 @@ fun downloadVideo(
 
 fun extractScriptFromRes(fileName: String): File? {
     val inputStream = {}.javaClass.getResourceAsStream("/$fileName") ?: return null
-    val tempFile = Files.createTempFile("script_temp", ".py").toFile()
-    tempFile.deleteOnExit() // Se eliminará automáticamente al salir
+
+
+    val workingDir = System.getProperty("user.dir")
+    val targetFile = File(workingDir, fileName)
 
     inputStream.use { input ->
-        FileOutputStream(tempFile).use { output ->
+        FileOutputStream(targetFile).use { output ->
             input.copyTo(output)
         }
     }
-    return tempFile
+    return targetFile
 }
 
 fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList()): scriptOutput?  {
+    //val scriptFile = extractScriptFromRes(fileName) ?: return null
+    val launcher = extractExecutableByOS("pyLauncher")
     val scriptFile = extractScriptFromRes(fileName) ?: return null
 
-    val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, *args.toTypedArray())
+    val processBuilder = ProcessBuilder(launcher?.absolutePath ?: return null, scriptFile.absolutePath, *args.toTypedArray())
     processBuilder.redirectErrorStream(true)
 
     return try {
@@ -271,6 +273,7 @@ fun runPyScriptFromRes(fileName: String, args: List<String> = emptyList()): scri
         val output = mutableListOf<String>()
         var line: String? = reader.readLine()
         while (line != null) {
+            println(line)
             output.add(line)
             line = reader.readLine()
         }
