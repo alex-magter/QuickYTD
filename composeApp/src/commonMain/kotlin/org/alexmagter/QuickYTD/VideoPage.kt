@@ -246,6 +246,7 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                             }
                         }
 
+                        Spacer( Modifier.height(6.dp) )
 
                         Text(
                             text = videoName ?: "",

@@ -248,7 +248,8 @@ fun extractScriptFromRes(fileName: String): File? {
 
 
     val workingDir = System.getProperty("user.dir")
-    val targetFile = File(workingDir, fileName)
+    val targetFolder = File(workingDir, "py")
+    val targetFile = File(targetFolder, fileName)
 
     inputStream.use { input ->
         FileOutputStream(targetFile).use { output ->

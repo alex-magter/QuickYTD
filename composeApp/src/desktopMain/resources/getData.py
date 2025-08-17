@@ -10,11 +10,11 @@ def prepareOutput():
     temp_path = os.getcwd()
     os.chdir(temp_path)
 
-    os.path.join(temp_path, 'dataOutput')
-    if not os.path.exists('dataOutput'):
-        os.makedirs('dataOutput')
+    data_path = os.path.join(temp_path, 'py','dataOutput')
+    if not os.path.exists(data_path):
+        os.makedirs(data_path)
 
-    return os.path.abspath('dataOutput')
+    return os.path.abspath(data_path)
 
 # Simply convert the given value in bytes to MiB
 def byteToMb(value):

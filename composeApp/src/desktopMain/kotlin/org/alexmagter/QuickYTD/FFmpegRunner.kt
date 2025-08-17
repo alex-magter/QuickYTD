@@ -34,17 +34,22 @@ fun extractExecutableByOS(name: String): File?{
     val finalName = name + "_" + folder
 
     val inputStream = {}.javaClass.getResourceAsStream("/bin/$folder/$finalName$extension") ?: return null
-    val tempFile = Files.createTempFile("executable_temp", extension).toFile()
-    tempFile.deleteOnExit() // Se eliminará automáticamente al salir
 
     val workingDir = System.getProperty("user.dir")
-    val targetFile = File(workingDir, "$finalName$extension")
+    val targetFolder = File(workingDir, "py")
+    if (!targetFolder.exists()) {
+        targetFolder.mkdirs()
+    }
+    val targetFile = File(targetFolder, "$finalName$extension")
 
-    inputStream.use { input ->
-        FileOutputStream(targetFile).use { output ->
-            input.copyTo(output)
+    if(!targetFile.exists()){
+        inputStream.use { input ->
+            FileOutputStream(targetFile).use { output ->
+                input.copyTo(output)
+            }
         }
     }
+
     return targetFile
 }
 
