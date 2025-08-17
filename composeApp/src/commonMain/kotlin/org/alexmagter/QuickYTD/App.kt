@@ -22,6 +22,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -32,12 +34,18 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
@@ -69,6 +77,7 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
     MaterialTheme {
         var link by remember { mutableStateOf("") }
         var theme = "Dark"
+        var buttonEnabled by remember { mutableStateOf(true) }
         var isLinkInvalid by remember { mutableStateOf(false) }
         var isGettingData by remember { mutableStateOf(false) }
         var hadErrorGettingVideo by remember { mutableStateOf(false) }
@@ -113,11 +122,42 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                 )
             }
 
+
+
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                fun searchVideo() {
+                    buttonEnabled = false
+                    Video.checkVideo(
+                        link = link,
+                        ifErrorOccurred = {
+                            hadErrorGettingVideo = true
+                            error = it.toString()
+                        }) { result ->
+                        isLinkInvalid = !result
+                        if (result) {
+                            isGettingData = true
+
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val video = Video(link)
+                                video.getData()
+
+                                withContext(Dispatchers.Main) {
+                                    isGettingData = false
+                                    viewModel.video = video
+                                    navController.navigate("VideoPage")
+                                }
+                            }
+                        } else {
+                            link = ""
+                            buttonEnabled = true
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = link,
                     onValueChange = { newText: String ->
@@ -131,38 +171,28 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     colors = DarkTheme.textFieldColors(),
                     modifier = Modifier
                         .width(windowWidth.value)
-                        .padding(8.dp, 0.dp),
-                    placeholder = { Text(stringResource(Res.string.put_link), color = Color.Gray) },
+                        .padding(8.dp, 0.dp)
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyUp && keyEvent.key == Key.Enter) {
+                                searchVideo()
+                                return@onPreviewKeyEvent true
+                            } else return@onPreviewKeyEvent false
+                       },
+                    placeholder = { Text(stringResource(Res.string.put_link)) },
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Go
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            searchVideo()
+                        }
+                    )
                 )
 
                 Button(
-                    onClick = {
-                        Video.checkVideo(
-                            link = link,
-                            ifErrorOccurred = {
-                                hadErrorGettingVideo = true
-                                error = it.toString()
-                            }) { result ->
-                                isLinkInvalid = !result
-                                if (result) {
-                                    isGettingData = true
-
-                                    CoroutineScope(Dispatchers.IO).launch {
-
-                                        val video = Video(link)
-                                        video.getData()
-
-                                        withContext(Dispatchers.Main){
-                                            viewModel.video = video
-                                            navController.navigate("VideoPage")
-                                        }
-
-                                    }
-                                }
-                            }
-                    },
-                    enabled = !isGettingData,
-                    colors = DarkTheme.SearcbButtonColors(!isGettingData)
+                    onClick = { searchVideo() },
+                    enabled = buttonEnabled,
+                    colors = DarkTheme.SearcbButtonColors(buttonEnabled)
                 ){
                     Text(stringResource(Res.string.search))
                 }
