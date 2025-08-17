@@ -6,6 +6,9 @@ import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import org.alexmagter.QuickYTD.FFmpegRunner.checkFFmpeg
+import org.jetbrains.compose.resources.painterResource
+import quickytd.composeapp.generated.resources.Res
+import quickytd.composeapp.generated.resources.logo
 import javax.swing.JOptionPane
 
 fun main() = application {
@@ -26,7 +29,8 @@ fun main() = application {
             onCloseRequest = ::exitApplication,
             title = "QuickYTD",
             state = windowState,
-            resizable = true
+            resizable = true,
+            icon = painterResource(Res.drawable.logo)
         ) {
             LaunchedEffect(Unit) {
                 window.minimumSize = java.awt.Dimension(400, 700)

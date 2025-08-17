@@ -68,7 +68,7 @@ actual class Video actual constructor(private val linkParam: String) {
                 onProgressChange = onProgressChange,
                 onResult = onResult
             )
-        } else if (downloadPath == "Video (muted)"){
+        } else if (downloadType == "Video (muted)"){
             downloadMutedVideo(
                 onProgressChange = onProgressChange,
                 onResult = onResult
