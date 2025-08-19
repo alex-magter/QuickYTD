@@ -11,9 +11,36 @@ fun getOS(): String {
     return when {
         osName.contains("win") -> "Windows"
         osName.contains("mac") -> "Mac"
-        osName.contains("nix") || osName.contains("nux") || osName.contains("aix") -> "Linux"
-        else -> "Unknown"
+        else -> "Linux"
     }
+}
+
+fun getAppDataDir(appName: String): File {
+    val os = getOS()
+
+    val baseDir = when {
+        os.contains("Windows") -> {
+            // En Windows: %APPDATA%
+            System.getenv("APPDATA") ?: System.getProperty("user.home")
+        }
+
+        os.contains("Mac") -> {
+            // En macOS: ~/Library/Application Support
+            System.getProperty("user.home") + "/Library/Application Support"
+        }
+
+        else -> {
+            // En Linux/Unix: $XDG_DATA_HOME o ~/.local/share
+            System.getenv("XDG_DATA_HOME")
+                ?: (System.getProperty("user.home") + "/.local/share")
+        }
+    }
+    val appDir = File(baseDir, appName)
+    if (!appDir.exists()) {
+        appDir.mkdirs()
+    }
+
+    return appDir
 }
 
 fun extractExecutableByOS(name: String): File?{
@@ -35,7 +62,7 @@ fun extractExecutableByOS(name: String): File?{
 
     val inputStream = {}.javaClass.getResourceAsStream("/bin/$folder/$finalName$extension") ?: return null
 
-    val workingDir = System.getProperty("user.dir")
+    val workingDir = getAppDataDir("QuickYTD")
     val targetFolder = File(workingDir, "py")
     if (!targetFolder.exists()) {
         targetFolder.mkdirs()
