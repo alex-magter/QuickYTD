@@ -47,7 +47,7 @@ actual class Video actual constructor(private val linkParam: String) {
     actual var downloadType: String = ""
 
     actual fun getData() {
-        val output = runPyScriptFromRes("getData.py", listOf(link))
+        val output = runPyScriptFromRes("getData.py", listOf(link, getAppDataDir("QuickYTD").absolutePath))
 
         val data = VideoData(output!!.path, link)
         videoData = data
