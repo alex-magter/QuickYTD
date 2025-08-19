@@ -6,9 +6,8 @@ import csv
 import os
 
 # Create the folder that will contain the output files
-def prepareOutput():
-    temp_path = os.getcwd()
-    os.chdir(temp_path)
+def prepareOutput(path):
+    temp_path = path
 
     data_path = os.path.join(temp_path, 'py','dataOutput')
     if not os.path.exists(data_path):
@@ -160,7 +159,8 @@ def getData(url):
 # Gets the Url and calls the functions
 if __name__ == "__main__":
     video_url = sys.argv[1]
-    outputPath = prepareOutput()
+    data_path = sys.argv[2]
+    outputPath = prepareOutput(data_path)
     getData(video_url)
     downloadThumbnail(video_url)
     getNameandChannel(video_url)
