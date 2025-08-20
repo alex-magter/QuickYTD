@@ -168,7 +168,7 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                 onCancelRequest = {
                     downloadTask = "Cancelling download..."
                     isDownloadCancelled = true
-                    cancelDownload()
+                    video.cancelDownload()
                 }
             )
 
@@ -406,10 +406,13 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                                 isChoosingPath = true
 
                                 scope.launch {
-                                    fileSaver.selectFolder("${sanitizeFileName(videoName)}.$selectedExtension",
+                                    val mimetype = "${if(selectedType == "Audio") "audio" else "video"}/mp4"
+
+                                    fileSaver.selectFolder(
+                                        "${sanitizeFileName(videoName)}.$selectedExtension",
                                         selectedExtension) { stream, path, name ->
                                         isChoosingPath = false
-                                        if(path != null && name != null){
+                                        if(stream != null && name != null && path != null){
                                             video.downloadPath = path
                                             video.filename = sanitizeFileName(name)
                                             video.isSavedAs = true

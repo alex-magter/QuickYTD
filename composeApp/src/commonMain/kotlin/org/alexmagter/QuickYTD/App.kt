@@ -136,14 +136,14 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                         ifErrorOccurred = {
                             hadErrorGettingVideo = true
                             error = it.toString()
-                        }) { result ->
+                        }
+                    ) { result ->
                         isLinkInvalid = !result
                         if (result) {
                             isGettingData = true
 
                             CoroutineScope(Dispatchers.IO).launch {
                                 val video = Video(link)
-                                video.getData()
 
                                 withContext(Dispatchers.Main) {
                                     isGettingData = false
