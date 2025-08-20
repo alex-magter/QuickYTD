@@ -2,6 +2,7 @@ package org.alexmagter.QuickYTD
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
@@ -19,32 +20,21 @@ class MainActivity : ComponentActivity() {
 
         val receivedIntent: Intent? = intent
 
-        if (receivedIntent != null && receivedIntent.action == Intent.ACTION_SEND) {
-            handleSharedText(receivedIntent)
-        }
+        val sharedText: String? = if (receivedIntent != null && receivedIntent.action == Intent.ACTION_SEND) {
+            intent.getStringExtra(Intent.EXTRA_TEXT)
+        } else null
+
+
 
         fileSaver = FileSaver(this)
 
 
         setContent {
-            Navigation(fileSaver)
+            Navigation(fileSaver, sharedText)
         }
     }
 
-    private fun handleSharedText(intent: Intent) {
-        val receivedType: String? = intent.type
 
-        if (receivedType == "text/plain") {
-            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
-
-            if (sharedText != null) {
-                // Aquí procesas el texto recibido
-                // Por ejemplo, lo muestras en un TextView
-                // val textView = findViewById<TextView>(R.id.mi_texto_compartido)
-                // textView.text = sharedText
-            }
-        }
-    }
 }
 
 @Preview

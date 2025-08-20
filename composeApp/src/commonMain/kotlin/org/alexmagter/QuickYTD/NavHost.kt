@@ -32,6 +32,7 @@ fun Navigation(fileSaver: FileSaver, sharedData: String? = null){
     val animationDurationMillis = 300
     val slideUnderPercentage = 0.2
     val fadePercentage = 0.2f
+    var hasAccessedSharedLink: Boolean = false
 
     Box(Modifier.fillMaxSize().background(Color.Black)) {
         NavHost(
@@ -71,7 +72,8 @@ fun Navigation(fileSaver: FileSaver, sharedData: String? = null){
 
             ) {
             composable(route = SearchScreen.Start.name) {
-                App(navController, sharedViewModel, sharedData)
+                App(navController, sharedViewModel, if(!hasAccessedSharedLink){ sharedData } else null)
+                hasAccessedSharedLink = true
             }
 
             composable(route = SearchScreen.VideoPage.name) {

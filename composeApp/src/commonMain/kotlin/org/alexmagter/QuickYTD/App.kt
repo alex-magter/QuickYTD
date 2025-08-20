@@ -73,6 +73,7 @@ import quickytd.composeapp.generated.resources.search
 @Composable
 @Preview
 fun App(navController: NavController, viewModel: SharedViewModel, sharedData: String? = null) {
+    println(sharedData)
 
     MaterialTheme {
         var link by remember { mutableStateOf(sharedData ?: "") }
