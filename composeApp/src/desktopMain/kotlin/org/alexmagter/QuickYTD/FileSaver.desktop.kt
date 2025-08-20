@@ -23,7 +23,12 @@ actual class FileSaver {
     ) {
         withContext(Dispatchers.IO) {
             val chooser = JFileChooser()
-            val filter = FileNameExtensionFilter("M4A audio files", "m4a")
+            val filter = when(mimeType){
+                "audio/mp4" -> FileNameExtensionFilter("M4A audio files", "m4a")
+                "video/mp4" -> FileNameExtensionFilter("MP4 video files", "mp4")
+                else -> null
+            }
+
             chooser.fileFilter = filter
             chooser.selectedFile = File(suggestedFileName)
             val result = chooser.showSaveDialog(null)
