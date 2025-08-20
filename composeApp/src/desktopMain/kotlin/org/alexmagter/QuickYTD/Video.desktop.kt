@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.alexmagter.QuickYTD.FFmpegRunner.runFFmpegExe
+import org.alexmagter.QuickYTD.SystemUtils.runPyScriptFromRes
 import java.io.BufferedReader
 import java.io.File
 import java.io.InputStreamReader
@@ -16,7 +17,7 @@ import java.nio.file.StandardCopyOption
 actual class Video actual constructor(private val linkParam: String) {
 
     init {
-
+        getData()
     }
 
     actual val link: String = linkParam
@@ -46,10 +47,14 @@ actual class Video actual constructor(private val linkParam: String) {
     actual var isSavedAs: Boolean = false
     actual var downloadType: String = ""
 
-    actual fun getData() {
-        val output = runPyScriptFromRes("getData.py", listOf(link, getAppDataDir("QuickYTD").absolutePath))
+    private var isDownloading = false
+    private var isCancellingDownload = false
 
-        val data = VideoData(output!!.path, link)
+    actual fun getData() {
+
+        val output = runPyScriptFromRes("getData.py", listOf(linkParam, getAppDataDir("QuickYTD").absolutePath))
+
+        val data = VideoData(output!!.path, linkParam)
         videoData = data
 
     }
@@ -58,6 +63,9 @@ actual class Video actual constructor(private val linkParam: String) {
         onResult: (Boolean) -> Unit,
         onProgressChange: (Double, String) -> Unit
     ) {
+        isDownloading = true
+        isCancellingDownload = false
+
         if(downloadType == "Audio"){
             downloadAudio(
                 onProgressChange = onProgressChange,
@@ -76,61 +84,37 @@ actual class Video actual constructor(private val linkParam: String) {
         } else {
             throw IllegalStateException("Couldn't detect selected type")
         }
+
+        isDownloading = false
     }
 
     private fun downloadAudio(
         onResult: (Boolean) -> Unit,
         onProgressChange: (Double, String) -> Unit
     ) {
-        Cancelling = false
+        isCancellingDownload = false
 
         CoroutineScope(Dispatchers.IO).launch {
 
-            val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
+            //val scriptFile = extractScriptFromRes("downloadAudio.py") ?: return@launch
+
+            runPyScriptFromRes(
+                fileName = "downloadAudio.py",
+                args = listOf(link, extension, resolution, downloadPath, "$filename.$extension"),
+                onOutput = { line ->
+                    onProgressChange(line.toDouble(), "Downloading...")
+                },
+                cancelProcessWhen = { isCancellingDownload }
+            )
 
             println("$link $extension $resolution $downloadPath $filename")
 
-            outputFile = File(downloadPath, "$filename.$extension")
+            if(isCancellingDownload){
+                File(downloadPath, "$filename.$extension").delete()
+            }
 
-            val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
-            processBuilder.redirectErrorStream(true)
-
-            try {
-
-                val process = processBuilder.start()
-                downloadProcess = process
-
-                val output = mutableListOf<String>()
-
-                Thread {
-                    val reader = BufferedReader(InputStreamReader(process.inputStream))
-                    var line: String?
-
-                    while (true) {
-                        line = reader.readLine()
-                        if (line == null) break
-                        onProgressChange(line.toDouble(), "Downloading...")
-                    }
-
-                }.start()
-
-                process.waitFor()
-
-                if(Cancelling){
-                    try {
-                        File(downloadPath, filename).delete()
-                        onResult(true)
-                    } catch (e: Exception){
-                        println(e)
-                        onResult(false)
-                    }
-                    return@launch
-                }
-
+            withContext(Dispatchers.Main){
                 onResult(true)
-
-            } catch (e: Exception) {
-                onResult(false)
             }
         }
     }
@@ -139,56 +123,27 @@ actual class Video actual constructor(private val linkParam: String) {
         onResult: (Boolean) -> Unit,
         onProgressChange: (Double, String) -> Unit
     ) {
-        Cancelling = false
+        isCancellingDownload = false
 
         CoroutineScope(Dispatchers.IO).launch {
 
-            val scriptFile = extractScriptFromRes("downloadVideoMuted.py") ?: return@launch
+            runPyScriptFromRes(
+                fileName = "downloadVideoMuted.py",
+                args = listOf(link, extension, resolution, downloadPath, "$filename.$extension"),
+                onOutput = { line ->
+                    onProgressChange(line.toDouble(), "Downloading...")
+                },
+                cancelProcessWhen = { isCancellingDownload }
+            )
 
-            println("$link $extension $resolution $downloadPath $filename")
-
-            outputFile = File(downloadPath, "$filename.$extension")
-
-            val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, downloadPath, "$filename.$extension")
-            processBuilder.redirectErrorStream(true)
-
-            try {
-
-                val process = processBuilder.start()
-                downloadProcess = process
-
-                val output = mutableListOf<String>()
-
-                Thread {
-                    val reader = BufferedReader(InputStreamReader(process.inputStream))
-                    var line: String?
-
-                    while (true) {
-                        line = reader.readLine()
-                        if (line == null) break
-                        onProgressChange(line.toDouble(), "Downloading...")
-                    }
-
-                }.start()
-
-                process.waitFor()
-
-                if(Cancelling){
-                    try {
-                        File(downloadPath, filename).delete()
-                        onResult(true)
-                    } catch (e: Exception){
-                        println(e)
-                        onResult(false)
-                    }
-                    return@launch
-                }
-
-                onResult(true)
-
-            } catch (e: Exception) {
-                onResult(false)
+            if(isCancellingDownload){
+                val result = File(downloadPath, "$filename.$extension").delete()
+                println(result)
+                onResult(result)
             }
+
+            onResult(true)
+
         }
     }
 
@@ -200,15 +155,15 @@ actual class Video actual constructor(private val linkParam: String) {
         val videoFile = Files.createTempFile("tempVideo", ".$extension").toFile()
         var output = File(downloadPath, "$filename.$extension")
 
-        val scriptFile = extractScriptFromRes("downloadVideo.py")
+        /*val scriptFile = extractScriptFromRes("downloadVideo.py")
         if (scriptFile == null) { onResult(false); return }
 
         val processBuilder = ProcessBuilder("python3", scriptFile.absolutePath, link, extension, resolution, audioFile.parent, audioFile.name, videoFile.name)
-        processBuilder.redirectErrorStream(true)
+        processBuilder.redirectErrorStream(true)*/
 
         CoroutineScope(Dispatchers.IO).launch{
-            try {
-                val process = processBuilder.start()
+
+                /*val process = processBuilder.start()
                 downloadProcess = process
 
 
@@ -226,63 +181,79 @@ actual class Video actual constructor(private val linkParam: String) {
                 }
 
                 process.waitFor()
+                 */
 
-                if(Cancelling){
-                    try {
-                        audioFile.delete()
-                        videoFile.delete()
-                        onResult(true)
-                    } catch (e: Exception){
-                        println(e)
-                        onResult(false)
-                    }
-                    return@launch
+            runPyScriptFromRes(
+                fileName = "downloadVideo.py",
+                args = listOf(link, extension, resolution, audioFile.parent, audioFile.name, videoFile.name),
+                onOutput = { line ->
+                    onProgressChange(line.toDouble(), "Downloading...")
+                },
+                onError = {
+                    println(it)
+                    onResult(false)
+                    return@runPyScriptFromRes
+                },
+                cancelProcessWhen = { isCancellingDownload }
+            )
+
+            if(isCancellingDownload){
+                try {
+                    audioFile.delete()
+                    videoFile.delete()
+                    onResult(true)
+                } catch (e: Exception){
+                    println(e)
+                    onResult(false)
                 }
-
-                if(!isSavedAs){
-                    val name = output.nameWithoutExtension
-                    val fileExtension = output.extension
-                    var attempts = 0;
-
-                    while(true){
-                        if (output.exists()){
-                            attempts++;
-                            output = File(output.parent, "$name($attempts).$fileExtension")
-                            continue
-                        } else {
-                            break
-                        }
-                    }
-                }
-
-                println("Calling ffmpeg")
-
-                println("Audio: ${audioFile.absolutePath}, Video: ${videoFile.absolutePath}, Output: ${output.absolutePath}")
-
-                onProgressChange(0.0, "Exporting")
-
-                val result = runFFmpegExe(
-                    name = "ffmpeg",
-                    audioFile = audioFile,
-                    videoFile = videoFile,
-                    outputFile = output
-                )
-
-                if(result == false) { onResult(false); return@launch; }
-
-                if (Cancelling) { output.delete() }
-
-                audioFile.delete()
-                videoFile.delete()
-
-                onProgressChange(1.0, "Exporting")
-
-                onResult(true)
-
-            } catch (e: Exception) {
-                onResult(false)
+                return@launch
             }
+
+            if(!isSavedAs){
+                val name = output.nameWithoutExtension
+                val fileExtension = output.extension
+                var attempts = 0;
+
+                while(true){
+                    if (output.exists()){
+                        attempts++;
+                        output = File(output.parent, "$name($attempts).$fileExtension")
+                        continue
+                    } else {
+                        break
+                    }
+                }
+            }
+
+            println("Calling ffmpeg")
+
+            println("Audio: ${audioFile.absolutePath}, Video: ${videoFile.absolutePath}, Output: ${output.absolutePath}")
+
+            onProgressChange(0.0, "Exporting")
+
+            val result = runFFmpegExe(
+                name = "ffmpeg",
+                audioFile = audioFile,
+                videoFile = videoFile,
+                outputFile = output
+            )
+
+            if(result == false) { onResult(false); return@launch; }
+
+            if (isCancellingDownload) { output.delete() }
+
+            audioFile.delete()
+            videoFile.delete()
+
+            onProgressChange(1.0, "Exporting")
+
+            onResult(true)
+
         }
+    }
+
+    actual fun cancelDownload(){
+        isCancellingDownload = true
     }
 
     actual fun downloadThumbnail(path: String, onResult: () -> Unit){

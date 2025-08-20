@@ -1,5 +1,6 @@
 package org.alexmagter.QuickYTD
 
+import MediaMerger
 import android.media.MediaCodec
 import android.util.Log
 import androidx.core.net.toUri
@@ -19,13 +20,20 @@ import java.io.OutputStream
 import android.media.MediaExtractor;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.media.MediaScannerConnection
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
+import kotlin.math.max
 
-actual class Video actual constructor(linkParam: String) {
+actual class Video actual constructor(private val linkParam: String) {
+
+    init {
+        getData()
+    }
+
     actual val link: String = linkParam
     actual var downloadPath: String = ""
     actual var filename: String = ""
@@ -52,6 +60,12 @@ actual class Video actual constructor(linkParam: String) {
         return videoData.thumbnail
     }
 
+    actual fun cancelDownload(){
+        isCancellingDownload = true
+    }
+
+    private var isCancellingDownload = false
+
     actual fun getData() {
         if (!Python.isStarted()) {
             Python.start(AndroidPlatform(context))
@@ -65,12 +79,12 @@ actual class Video actual constructor(linkParam: String) {
         val result: String
 
         try {
-            result = module.callAttr("startScript", link, contextPath).toString()
+            result = module.callAttr("startScript", linkParam, contextPath).toString()
         } catch (_: Exception) {
         }
 
         val path = File(contextPath)
-        val output = VideoData(path, link)
+        val output = VideoData(path, linkParam)
         videoData = output
     }
 
@@ -89,13 +103,11 @@ actual class Video actual constructor(linkParam: String) {
                 onProgressChange = onProgressChange,
                 onResult = onResult
             )
-        } else if (downloadPath == "Video (muted)") {
+        } else {
             downloadMutedVideo(
                 onProgressChange = onProgressChange,
                 onResult = onResult
             )
-        } else {
-            throw IllegalStateException("Couldn't detect selected type")
         }
     }
 
@@ -104,7 +116,7 @@ actual class Video actual constructor(linkParam: String) {
         onResult: (Boolean) -> Unit,
         onProgressChange: (Double, String) -> Unit
     ) {
-        Cancelling = false
+        isCancellingDownload = false
 
         val tempDir = if(isSavedAs) context.cacheDir else File(downloadPath)
         val tempFileName = if(isSavedAs) "temp_media_${System.currentTimeMillis()}.tmp" else "$filename.$extension"
@@ -127,7 +139,7 @@ actual class Video actual constructor(linkParam: String) {
 
                 println("Is active thread: $isActive")
 
-                Cancelling
+                isCancellingDownload
             })
 
 
@@ -148,12 +160,12 @@ actual class Video actual constructor(linkParam: String) {
 
             }
 
-            if(Cancelling) {
+            if(isCancellingDownload) {
                 onResult(true)
                 return@launch
             }
 
-            if (!isSavedAs) { onResult(true); return@launch }
+            if (!isSavedAs) { onResult(true); MediaStoreSaver.addAudio(tempFile); return@launch }
 
             if(!tempFile.exists() || tempFile.length() == 0L) {
                 Log.e("FileCopy", "El archivo temporal no existe o esta vacío: ${tempFile.absolutePath}")
@@ -193,7 +205,7 @@ actual class Video actual constructor(linkParam: String) {
                 var bytesCopiedSoFar = 0L
 
                 while (true){
-                    if(Cancelling) {
+                    if(isCancellingDownload) {
 
                         context.contentResolver.openOutputStream(downloadPath.toUri(), "w")?.use {
                         } ?: run {
@@ -217,6 +229,8 @@ actual class Video actual constructor(linkParam: String) {
                         }
                         lastReportedPercentage = currentPercentage
                     }
+
+                    MediaStoreSaver.addAudio(tempFile);
 
 
                 }
@@ -249,7 +263,7 @@ actual class Video actual constructor(linkParam: String) {
         onResult: (Boolean) -> Unit,
         onProgressChange: (Double, String) -> Unit
     ) {
-        Cancelling = false
+        isCancellingDownload = false
 
         val tempDir = if(isSavedAs) context.cacheDir else File(downloadPath)
         val tempFileName = if(isSavedAs) "temp_media_${System.currentTimeMillis()}.tmp" else "$filename.$extension"
@@ -272,7 +286,7 @@ actual class Video actual constructor(linkParam: String) {
 
                 println("Is active thread: $isActive")
 
-                Cancelling
+                isCancellingDownload
             })
 
 
@@ -293,12 +307,12 @@ actual class Video actual constructor(linkParam: String) {
 
             }
 
-            if(Cancelling) {
+            if(isCancellingDownload) {
                 onResult(true)
                 return@launch
             }
 
-            if (!isSavedAs) { onResult(true); return@launch }
+            if (!isSavedAs) { onResult(true); MediaStoreSaver.addVideo(tempFile); return@launch }
 
             if(!tempFile.exists() || tempFile.length() == 0L) {
                 Log.e("FileCopy", "El archivo temporal no existe o esta vacío: ${tempFile.absolutePath}")
@@ -338,7 +352,7 @@ actual class Video actual constructor(linkParam: String) {
                 var bytesCopiedSoFar = 0L
 
                 while (true){
-                    if(Cancelling) {
+                    if(isCancellingDownload) {
 
                         context.contentResolver.openOutputStream(downloadPath.toUri(), "w")?.use {
                         } ?: run {
@@ -363,6 +377,7 @@ actual class Video actual constructor(linkParam: String) {
                         lastReportedPercentage = currentPercentage
                     }
 
+                    MediaStoreSaver.addVideo(tempFile);
 
                 }
             } catch (e: IOException) {
@@ -399,10 +414,9 @@ actual class Video actual constructor(linkParam: String) {
         val videoFile = File(temp, "tempVideo.$extension")
         var outputFile = if(isSavedAs) File(temp, "temp_media_${System.currentTimeMillis()}.$extension") else File(downloadPath, "$filename.$extension")
 
+        isCancellingDownload = false
 
-        Cancelling = false
-
-        downloadThread = CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             if (!Python.isStarted()) {
                 Python.start(AndroidPlatform(context))
             }
@@ -417,7 +431,7 @@ actual class Video actual constructor(linkParam: String) {
 
                 println("Is active thread: $isActive")
 
-                Cancelling
+                isCancellingDownload
             })
 
 
@@ -449,7 +463,7 @@ actual class Video actual constructor(linkParam: String) {
 
             }
 
-            if (Cancelling) {
+            if (isCancellingDownload) {
                 onResult(true)
                 return@launch
             }
@@ -481,127 +495,12 @@ actual class Video actual constructor(linkParam: String) {
 
             onProgressChange(0.0, exportTag)
 
-            val videoExtractor = MediaExtractor().apply { setDataSource(videoFile.absolutePath) }
-            val audioExtractor = MediaExtractor().apply { setDataSource(audioFile.absolutePath) }
-            val muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
-
-            var muxerVideoTrackIndex = -1
-            var muxerAudioTrackIndex = -1
-
-            val videoTrackIndex = (0 until videoExtractor.trackCount)
-                .firstOrNull {
-                    val format = videoExtractor.getTrackFormat(it)
-                    val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-                    if(mime.startsWith("video/")){
-                        muxerVideoTrackIndex = muxer.addTrack(format)
-                        videoExtractor.selectTrack(it)
-                        true
-                    } else false
-                } ?: throw IllegalArgumentException("No video track found")
-
-            val audioTrackIndex = (0 until audioExtractor.trackCount)
-                .firstOrNull {
-                    val format = audioExtractor.getTrackFormat(it)
-                    val mime = format.getString(MediaFormat.KEY_MIME) ?: ""
-                    if (mime.startsWith("audio/")) {
-                        muxerAudioTrackIndex = muxer.addTrack(format)
-                        audioExtractor.selectTrack(it)
-                        true
-                    } else false
-                } ?: throw IllegalArgumentException("No audio track found")
-
-            muxer.start()
-
-            var videoProgress = 0.0
-            var audioProgress = 0.0
-            val videoDurationUs = videoExtractor.getTrackFormat(videoTrackIndex).getLong(MediaFormat.KEY_DURATION)
-            val audioDurationUs = audioExtractor.getTrackFormat(audioTrackIndex).getLong(MediaFormat.KEY_DURATION)
-
-            val videoBuffer = ByteBuffer.allocate(1024 * 1024)
-            val videoBufferInfo = MediaCodec.BufferInfo()
-            val audioBuffer = ByteBuffer.allocate(1024 * 1024) // Buffer separado puede ser más seguro
-            val audioBufferInfo = MediaCodec.BufferInfo()
-
-            var sawVideoEOS = false
-            var sawAudioEOS = false
-
-            // Pre-carga la primera muestra de cada uno si están disponibles
-            var videoSampleSize = videoExtractor.readSampleData(videoBuffer, 0)
-            if (videoSampleSize < 0) sawVideoEOS = true else {
-                videoBufferInfo.offset = 0
-                videoBufferInfo.size = videoSampleSize
-                videoBufferInfo.presentationTimeUs = videoExtractor.sampleTime
-                videoBufferInfo.flags = videoExtractor.sampleFlags
-            }
-
-            var audioSampleSize = audioExtractor.readSampleData(audioBuffer, 0)
-            if (audioSampleSize < 0) sawAudioEOS = true else {
-                audioBufferInfo.offset = 0
-                audioBufferInfo.size = audioSampleSize
-                audioBufferInfo.presentationTimeUs = audioExtractor.sampleTime
-                audioBufferInfo.flags = audioExtractor.sampleFlags
-            }
-
-
-            while (!sawVideoEOS || !sawAudioEOS) {
-
-                if(Cancelling){
-
-                    muxer.stop()
-                    muxer.release()
-                    videoExtractor.release()
-                    audioExtractor.release()
-
-                    audioFile.delete()
-                    videoFile.delete()
-                    outputFile.delete()
-
-                    onResult(true)
-                    return@launch
-
-                }
-
-                val writeVideo = !sawVideoEOS && (sawAudioEOS || videoBufferInfo.presentationTimeUs <= audioBufferInfo.presentationTimeUs)
-
-                if (writeVideo) {
-                    muxer.writeSampleData(muxerVideoTrackIndex, videoBuffer, videoBufferInfo)
-                    videoProgress = videoBufferInfo.presentationTimeUs.toDouble() / videoDurationUs
-                    onProgressChange((videoProgress + audioProgress) * 100 / 2.0, "Exporting")
-
-                    if (!videoExtractor.advance()) {
-                        sawVideoEOS = true
-                    } else {
-                        videoSampleSize = videoExtractor.readSampleData(videoBuffer, 0)
-                        if (videoSampleSize < 0) sawVideoEOS = true else {
-                            videoBufferInfo.offset = 0
-                            videoBufferInfo.size = videoSampleSize
-                            videoBufferInfo.presentationTimeUs = videoExtractor.sampleTime
-                            videoBufferInfo.flags = videoExtractor.sampleFlags
-                        }
-                    }
-                } else if (!sawAudioEOS) { // writeAudio
-                    muxer.writeSampleData(muxerAudioTrackIndex, audioBuffer, audioBufferInfo)
-                    audioProgress = audioBufferInfo.presentationTimeUs.toDouble() / audioDurationUs
-                    onProgressChange((videoProgress + audioProgress) * 100 / 2.0, "Exporting")
-
-                    if (!audioExtractor.advance()) {
-                        sawAudioEOS = true
-                    } else {
-                        audioSampleSize = audioExtractor.readSampleData(audioBuffer, 0)
-                        if (audioSampleSize < 0) sawAudioEOS = true else {
-                            audioBufferInfo.offset = 0
-                            audioBufferInfo.size = audioSampleSize
-                            audioBufferInfo.presentationTimeUs = audioExtractor.sampleTime
-                            audioBufferInfo.flags = audioExtractor.sampleFlags
-                        }
-                    }
-                }
-            }
-
-            muxer.stop()
-            muxer.release()
-            videoExtractor.release()
-            audioExtractor.release()
+            mergeVideoAndAudio(
+                videoFile = videoFile,
+                audioFile = audioFile,
+                outputFile = outputFile,
+                onProgress = onProgressChange
+            )
 
             if (!isSavedAs) {
                 onResult(true); return@launch
@@ -636,7 +535,7 @@ actual class Video actual constructor(linkParam: String) {
                 var bytesCopiedSoFar = 0L
 
                 while (true){
-                    if(Cancelling) {
+                    if(isCancellingDownload) {
 
                         context.contentResolver.openOutputStream(downloadPath.toUri(), "w")?.use {
                         } ?: run {
@@ -661,6 +560,7 @@ actual class Video actual constructor(linkParam: String) {
                         lastReportedPercentage = currentPercentage
                     }
 
+                    MediaStoreSaver.addVideo(outputFile);
 
                 }
             } catch (e: IOException) {
@@ -689,9 +589,168 @@ actual class Video actual constructor(linkParam: String) {
         }
     }
 
+    /**
+     * Une un archivo de video y uno de audio en un solo archivo MP4 sin recodificar.
+     * Esta versión corrige problemas de framerate y congelamiento inicial.
+     *
+     * @param videoFile El archivo de video de entrada (ej: .mp4).
+     * @param audioFile El archivo de audio de entrada (ej: .m4a).
+     * @param outputFile El archivo de salida donde se guardará el resultado.
+     * @throws IOException Si ocurre un error de E/S.
+     * @throws IllegalArgumentException Si no se encuentra una pista de video o audio.
+     */
+    fun mergeVideoAndAudio(videoFile: File, audioFile: File, outputFile: File, onProgress: (Double, String) -> Unit) {
+        try {
+            outputFile.parentFile?.mkdirs()
+
+            val videoExtractor = MediaExtractor().apply { setDataSource(videoFile.absolutePath) }
+            val audioExtractor = MediaExtractor().apply { setDataSource(audioFile.absolutePath) }
+            val muxer = MediaMuxer(outputFile.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
+
+            // 1. Configurar pistas
+            val videoTrackIndex = findTrackIndex(videoExtractor, "video/")
+            val audioTrackIndex = findTrackIndex(audioExtractor, "audio/")
+
+            if (videoTrackIndex == -1) throw IllegalArgumentException("No se encontró una pista de video en ${videoFile.name}")
+            if (audioTrackIndex == -1) throw IllegalArgumentException("No se encontró una pista de audio en ${audioFile.name}")
+
+            videoExtractor.selectTrack(videoTrackIndex)
+            audioExtractor.selectTrack(audioTrackIndex)
+
+            val videoFormat = videoExtractor.getTrackFormat(videoTrackIndex)
+            val audioFormat = audioExtractor.getTrackFormat(audioTrackIndex)
+
+            val muxerVideoTrackIndex = muxer.addTrack(videoFormat)
+            val muxerAudioTrackIndex = muxer.addTrack(audioFormat)
+
+            // 2. Iniciar muxer y preparar buffers
+            muxer.start()
+
+            var videoProgress = 0.0
+            var audioProgress = 0.0
+            val videoDurationUs = videoExtractor.getTrackFormat(videoTrackIndex).getLong(MediaFormat.KEY_DURATION)
+            val audioDurationUs = audioExtractor.getTrackFormat(audioTrackIndex).getLong(MediaFormat.KEY_DURATION)
+
+            val buffer = ByteBuffer.allocate(1 * 1024 * 1024)
+            val bufferInfo = MediaCodec.BufferInfo()
+
+            var sawVideoEOS = false
+            var sawAudioEOS = false
+
+            var videoFirstSampleTime: Long = -1
+            var audioFirstSampleTime: Long = -1
+            var lastVideoTimestamp: Long = 0
+            var lastAudioTimestamp: Long = 0
+
+
+            // 3. Bucle principal para copiar las muestras
+            while (!sawVideoEOS || !sawAudioEOS) {
+                // Priorizamos la muestra con el timestamp más bajo para mantener la sincronización
+                val useVideo = if (!sawVideoEOS && (sawAudioEOS || videoExtractor.sampleTime <= audioExtractor.sampleTime)) {
+                    true
+                } else {
+                    false
+                }
+
+                if (useVideo) {
+                    val sampleSize = videoExtractor.readSampleData(buffer, 0)
+                    if (sampleSize < 0) {
+                        sawVideoEOS = true
+                    } else {
+                        if (videoFirstSampleTime == -1L) {
+                            videoFirstSampleTime = videoExtractor.sampleTime
+                        }
+                        val adjustedTime = videoExtractor.sampleTime - videoFirstSampleTime
+
+                        // !! CORRECCIÓN FINAL !!
+                        // Aseguramos que el timestamp sea estrictamente creciente.
+                        // Si el timestamp ajustado es menor o igual que el último, lo incrementamos en 1.
+                        if (adjustedTime <= lastVideoTimestamp) {
+                            lastVideoTimestamp += 1
+                        } else {
+                            lastVideoTimestamp = adjustedTime
+                        }
+
+                        bufferInfo.presentationTimeUs = lastVideoTimestamp
+                        bufferInfo.flags = videoExtractor.sampleFlags
+                        bufferInfo.size = sampleSize
+                        muxer.writeSampleData(muxerVideoTrackIndex, buffer, bufferInfo)
+
+                        videoProgress = bufferInfo.presentationTimeUs.toDouble() / videoDurationUs
+                        onProgress((videoProgress + audioProgress) * 100 / 2.0, "Exporting")
+
+                        videoExtractor.advance()
+                    }
+                } else if (!sawAudioEOS) {
+                    val sampleSize = audioExtractor.readSampleData(buffer, 0)
+                    if (sampleSize < 0) {
+                        sawAudioEOS = true
+                    } else {
+                        if (audioFirstSampleTime == -1L) {
+                            audioFirstSampleTime = audioExtractor.sampleTime
+                        }
+                        val adjustedTime = audioExtractor.sampleTime - audioFirstSampleTime
+
+                        // Hacemos lo mismo para el audio
+                        if (adjustedTime <= lastAudioTimestamp) {
+                            lastAudioTimestamp += 1
+                        } else {
+                            lastAudioTimestamp = adjustedTime
+                        }
+
+                        bufferInfo.presentationTimeUs = lastAudioTimestamp
+                        bufferInfo.flags = audioExtractor.sampleFlags
+                        bufferInfo.size = sampleSize
+                        muxer.writeSampleData(muxerAudioTrackIndex, buffer, bufferInfo)
+
+                        audioProgress = bufferInfo.presentationTimeUs.toDouble() / videoDurationUs
+                        onProgress((videoProgress + audioProgress) * 100 / 2.0, "Exporting")
+
+                        audioExtractor.advance()
+                    }
+                }
+            }
+
+            // 4. Detener y liberar recursos
+            muxer.stop()
+            muxer.release()
+            videoExtractor.release()
+            audioExtractor.release()
+
+            MediaScannerConnection.scanFile(
+                context,
+                arrayOf(outputFile.absolutePath), // La ruta completa del archivo
+                arrayOf("video/mp4"), // "video/mp4"
+                null // Puedes pasar un callback si lo necesitas
+            )
+
+        } catch (e: Exception) {
+            println("Error durante el muxing: ${e.message}")
+            if (outputFile.exists()) {
+                outputFile.delete()
+            }
+            throw e
+        }
+    }
+
+    /**
+     * Función de ayuda para encontrar el índice de la primera pista que coincida con el MIME type.
+     */
+    private fun findTrackIndex(extractor: MediaExtractor, mimePrefix: String): Int {
+        for (i in 0 until extractor.trackCount) {
+            val format = extractor.getTrackFormat(i)
+            val mime = format.getString(MediaFormat.KEY_MIME)
+            if (mime?.startsWith(mimePrefix) == true) {
+                return i
+            }
+        }
+        return -1
+    }
+
+
     actual fun downloadThumbnail(path: String, onResult: () -> Unit){
         val source = getThumbnail()
-        val targetFile = File(path, "video_thumbnail.jpg")
+        val targetFile = File(path, "thumbnail_${sanitizeFileName(getName().readText())}.jpg")
 
 
         CoroutineScope(Dispatchers.IO).launch {
@@ -699,11 +758,15 @@ actual class Video actual constructor(linkParam: String) {
 
             withContext(Dispatchers.Main){
                 onResult()
+                MediaStoreSaver.addPicture(targetFile)
             }
         }
     }
 
     actual companion object {
+
+        private val context = MainApplication.instance
+
         actual fun checkVideo(
             link: String,
             ifErrorOccurred: (Exception) -> Unit,
