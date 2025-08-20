@@ -508,7 +508,7 @@ fun Dropdown(label: String, elements: List<String>, selectedValue: String, isOpe
             modifier = Modifier
                 .menuAnchor(),
             colors = DarkTheme.textFieldColors(),
-            shape = DarkTheme.dropdownShape
+            shape = DarkTheme.dropdownShape,
         )
 
 

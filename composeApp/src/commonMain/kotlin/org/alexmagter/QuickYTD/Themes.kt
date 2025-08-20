@@ -34,7 +34,7 @@ object DarkTheme {
         disabledPlaceholderColor = Color.DarkGray,
         errorPlaceholderColor = Color.Red,
 
-        focusedLabelColor = Color.Gray,
+        focusedLabelColor = Color.LightGray,
         unfocusedLabelColor = Color.LightGray,
         disabledLabelColor = Color.DarkGray,
         errorLabelColor = Color.Red
