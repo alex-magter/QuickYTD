@@ -51,7 +51,8 @@ dependencies {
 
 chaquopy {
     defaultConfig {
-        buildPython = listOf(/* Your Python installation */)
+
+        buildPython = listOf(/* Put here your python installation */)
 
         pip {
             install("pytubefix==9.3.0")
