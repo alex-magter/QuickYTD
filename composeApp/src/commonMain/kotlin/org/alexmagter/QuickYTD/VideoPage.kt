@@ -64,12 +64,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
@@ -78,7 +81,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import quickytd.composeapp.generated.resources.Res
@@ -105,8 +110,8 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
 
         val video = remember { viewModel.video }
         val link = remember { video.link }
-        val thumbnail = remember(video.getThumbnail()) {
-            fileToBitmap(video.getThumbnail())
+        val thumbnail by produceState<ImageBitmap?>(initialValue = null, key1 = video.getThumbnail()) {
+            value = withContext(Dispatchers.IO) { fileToBitmap(video.getThumbnail()) }
         }
         val videoName: String = video.getName().readText()
         val videoChannel: String = video.getChannel().readText()
@@ -117,13 +122,23 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
         val windowWidth = remember { mutableStateOf(900.dp) }
 
         var selectedType by remember { mutableStateOf<String>("") }
-        val contentTypes = getContentTypes(videoDataFile = video.getFileData())
+        val contentTypes by produceState(initialValue = emptyList<String>(), key1 = video.getFileData()) {
+            value = withContext(Dispatchers.IO) { getContentTypes(video.getFileData()) }
+        }
 
         var selectedExtension by remember { mutableStateOf<String>("") }
-        var extensionTypes = getContentExtensions(videoDataFile = video.getFileData(), contentType = selectedType)
+        val extensionTypes by remember(selectedType, video.getFileData()) {
+            derivedStateOf {
+                getContentExtensions(video.getFileData(), selectedType)
+            }
+        }
 
         var selectedResolution by remember { mutableStateOf<String>("") }
-        var resolutions = getContentResolucions(videoDataFile = video.getFileData(), extension = selectedExtension)
+        val resolutions by remember(selectedExtension, video.getFileData()) {
+            derivedStateOf {
+                getContentResolutions(video.getFileData(), selectedExtension)
+            }
+        }
         var videoSize by remember { mutableStateOf<String>("") }
 
         var isVertical by remember { mutableStateOf(false) }
@@ -203,7 +218,7 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
 
                             ){
                                 Image(
-                                    bitmap = thumbnail                            ,
+                                    bitmap = thumbnail!!,
                                     contentDescription = "TODO",
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(16.dp))
@@ -276,8 +291,6 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                                 selectedType = it ?: ""
                                 selectedExtension = ""
                                 selectedResolution = ""
-
-                                extensionTypes = getContentExtensions(videoDataFile = video.getFileData(), contentType = selectedType)
                             }
                         )
 
@@ -294,7 +307,6 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                                     onValueChange = {
                                         selectedExtension = it ?: ""
                                         selectedResolution = ""
-                                        resolutions = getContentResolucions(videoDataFile = video.getFileData(), extension = selectedExtension)
                                     }
                                 )
 

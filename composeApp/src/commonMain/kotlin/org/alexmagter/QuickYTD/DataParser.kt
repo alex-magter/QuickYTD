@@ -46,7 +46,7 @@ fun getContentExtensions(videoDataFile: File?, contentType: String?): List<Strin
     return types.toSet().toList();
 }
 
-fun getContentResolucions(videoDataFile: File?, extension: String?): List<String> {
+fun getContentResolutions(videoDataFile: File?, extension: String?): List<String> {
 
     if (extension == null) return listOf("No Options")
 
