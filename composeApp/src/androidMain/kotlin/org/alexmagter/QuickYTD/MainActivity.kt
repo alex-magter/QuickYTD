@@ -1,6 +1,8 @@
 package org.alexmagter.QuickYTD
 
+import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
@@ -16,13 +18,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val receivedIntent: Intent? = intent
+
+        val sharedText: String? = if (receivedIntent != null && receivedIntent.action == Intent.ACTION_SEND) {
+            intent.getStringExtra(Intent.EXTRA_TEXT)
+        } else null
+
+
+
         fileSaver = FileSaver(this)
 
 
         setContent {
-            Navigation(fileSaver)
+            Navigation(fileSaver, sharedText)
         }
     }
+
+
 }
 
 @Preview

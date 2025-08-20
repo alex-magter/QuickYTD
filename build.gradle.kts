@@ -7,5 +7,5 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlinAndroid) apply false
     alias(libs.plugins.composeCompiler) apply false
-    id("com.chaquo.python") version "16.0.0" apply false
+    id("com.chaquo.python") version "16.1.0" apply false
 }

@@ -12,15 +12,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -31,34 +31,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.getResourceUri
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import quickytd.composeapp.generated.resources.Res
 import quickytd.composeapp.generated.resources.github
+import quickytd.composeapp.generated.resources.invalid_link
+import quickytd.composeapp.generated.resources.loading
+import quickytd.composeapp.generated.resources.put_link
+import quickytd.composeapp.generated.resources.search
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
-fun App(navController: NavController, viewModel: SharedViewModel) {
-
+fun App(navController: NavController, viewModel: SharedViewModel, sharedData: String? = null) {
     MaterialTheme {
-        var link by remember { mutableStateOf("") }
+        var link by remember { mutableStateOf(sharedData ?: "") }
         var theme = "Dark"
+        var canSearch by remember { mutableStateOf(true) }
         var isLinkInvalid by remember { mutableStateOf(false) }
         var isGettingData by remember { mutableStateOf(false) }
         var hadErrorGettingVideo by remember { mutableStateOf(false) }
@@ -71,7 +83,6 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
 
         val scope = rememberCoroutineScope()
         val uriHandler = LocalUriHandler.current
-
 
         Scaffold(
             containerColor = DarkTheme.backgroundColor,
@@ -104,11 +115,46 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                 )
             }
 
+
+
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
+                fun searchVideo() {
+                    canSearch = false
+                    Video.checkVideo(
+                        link = link,
+                        ifErrorOccurred = {
+                            hadErrorGettingVideo = true
+                            error = it.toString()
+                        }
+                    ) { result ->
+                        isLinkInvalid = !result
+                        if (result) {
+                            isGettingData = true
+
+                            scope.launch {
+                                val video = withContext(Dispatchers.IO) { Video(link) }
+
+                                withContext(Dispatchers.Main) {
+                                    isGettingData = false
+                                    viewModel.video = video
+                                    navController.navigate("VideoPage")
+                                }
+                            }
+                        } else {
+                            link = ""
+                            canSearch = true
+                        }
+                    }
+                }
+
+                LaunchedEffect(sharedData) {
+                    if(sharedData != null && canSearch) searchVideo()
+                }
+
                 OutlinedTextField(
                     value = link,
                     onValueChange = { newText: String ->
@@ -122,41 +168,30 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
                     colors = DarkTheme.textFieldColors(),
                     modifier = Modifier
                         .width(windowWidth.value)
-                        .padding(8.dp, 0.dp),
-                    placeholder = { Text("Enter the link here", color = Color.Gray) },
+                        .padding(8.dp, 0.dp)
+                        .onPreviewKeyEvent { keyEvent ->
+                            if (keyEvent.type == KeyEventType.KeyUp && keyEvent.key == Key.Enter && canSearch) {
+                                searchVideo()
+                                return@onPreviewKeyEvent true
+                            } else return@onPreviewKeyEvent false
+                       },
+                    placeholder = { Text(stringResource(Res.string.put_link)) },
+                    keyboardOptions = KeyboardOptions.Default.copy(
+                        imeAction = ImeAction.Go
+                    ),
+                    keyboardActions = KeyboardActions(
+                        onGo = {
+                            searchVideo()
+                        }
+                    )
                 )
 
                 Button(
-                    onClick = {
-                        checkVideo(
-                            link = link,
-                            ifErrorOccurred = {
-                                hadErrorGettingVideo = true
-                                error = it.toString()
-                            }) { result ->
-                                isLinkInvalid = !result
-                                if (result) {
-                                    isGettingData = true
-
-                                    scope.launch {
-                                        if(isAndroid()){
-                                            delay(350)
-                                        } else {
-                                            delay(0)
-                                        }
-
-                                        getData(link) { data ->
-                                            viewModel.videoData = data
-                                            navController.navigate("VideoPage")
-                                        }
-                                    }
-                                }
-                            }
-                    },
-                    enabled = !isGettingData,
-                    colors = DarkTheme.SearcbButtonColors(!isGettingData)
+                    onClick = { searchVideo() },
+                    enabled = canSearch,
+                    colors = DarkTheme.SearcbButtonColors(canSearch)
                 ){
-                    Text("Search")
+                    Text(stringResource(Res.string.search))
                 }
 
 
@@ -200,13 +235,15 @@ fun App(navController: NavController, viewModel: SharedViewModel) {
 
 @Composable
 fun LoadingText(isLoading: Boolean) {
+    val offsetY by remember { mutableStateOf<(Int) -> Int>({ -40 }) }
+
     AnimatedVisibility(
         visible = isLoading,
-        enter = slideInVertically(initialOffsetY = { -40 }) + expandIn(expandFrom = Alignment.Center),
-        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
+        enter = slideInVertically(initialOffsetY = offsetY) + expandIn(expandFrom = Alignment.Center),
+        exit = slideOutVertically(targetOffsetY = offsetY) + shrinkOut(shrinkTowards = Alignment.Center)
     ) {
         Text(
-            text = "Cargando datos...",
+            text = "${stringResource(Res.string.loading)}...",
             color = Color.Gray
         )
     }
@@ -214,13 +251,15 @@ fun LoadingText(isLoading: Boolean) {
 
 @Composable
 fun NoValidLinkWarning(valid: Boolean) {
+    val offsetY by remember { mutableStateOf<(Int) -> Int>({ -40 }) }
+
     AnimatedVisibility(
         visible = !valid,
-        enter = slideInVertically(initialOffsetY = { -40 }) + expandIn(expandFrom = Alignment.Center),
-        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
+        enter = slideInVertically(initialOffsetY = offsetY) + expandIn(expandFrom = Alignment.Center),
+        exit = slideOutVertically(targetOffsetY = offsetY) + shrinkOut(shrinkTowards = Alignment.Center)
     ) {
         Text(
-            text = "El link no es válido",
+            text = stringResource(Res.string.invalid_link),
             color = Color.Red
         )
     }
@@ -228,10 +267,12 @@ fun NoValidLinkWarning(valid: Boolean) {
 
 @Composable
 fun ErrorWarning(hadError: Boolean, error: String) {
+    val offsetY by remember { mutableStateOf<(Int) -> Int>({ -40 }) }
+
     AnimatedVisibility(
         visible = hadError,
-        enter = slideInVertically(initialOffsetY = { -40 }) + expandIn(expandFrom = Alignment.Center),
-        exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut(shrinkTowards = Alignment.Center)
+        enter = slideInVertically(initialOffsetY = offsetY) + expandIn(expandFrom = Alignment.Center),
+        exit = slideOutVertically(targetOffsetY = offsetY) + shrinkOut(shrinkTowards = Alignment.Center)
     ) {
         Text(
             text = "Error searching video: $error",

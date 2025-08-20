@@ -11,12 +11,39 @@ fun getOS(): String {
     return when {
         osName.contains("win") -> "Windows"
         osName.contains("mac") -> "Mac"
-        osName.contains("nix") || osName.contains("nux") || osName.contains("aix") -> "Linux"
-        else -> "Unknown"
+        else -> "Linux"
     }
 }
 
-fun extractExecutablaByOS(name: String): File?{
+fun getAppDataDir(appName: String): File {
+    val os = getOS()
+
+    val baseDir = when {
+        os.contains("Windows") -> {
+            // En Windows: %APPDATA%
+            System.getenv("APPDATA") ?: System.getProperty("user.home")
+        }
+
+        os.contains("Mac") -> {
+            // En macOS: ~/Library/Application Support
+            System.getProperty("user.home") + "/Library/Application Support"
+        }
+
+        else -> {
+            // En Linux/Unix: $XDG_DATA_HOME o ~/.local/share
+            System.getenv("XDG_DATA_HOME")
+                ?: (System.getProperty("user.home") + "/.local/share")
+        }
+    }
+    val appDir = File(baseDir, appName)
+    if (!appDir.exists()) {
+        appDir.mkdirs()
+    }
+
+    return appDir
+}
+
+fun extractExecutableByOS(name: String): File?{
     val folder = when(getOS()){
         "Windows" -> "win"
         "Mac" -> "macos"
@@ -31,20 +58,30 @@ fun extractExecutablaByOS(name: String): File?{
         else -> return null
     }
 
-    val inputStream = {}.javaClass.getResourceAsStream("/bin/$folder/$name$extension") ?: return null
-    val tempFile = Files.createTempFile("executable_temp", extension).toFile()
-    tempFile.deleteOnExit() // Se eliminará automáticamente al salir
+    val finalName = name + "_" + folder
 
-    inputStream.use { input ->
-        FileOutputStream(tempFile).use { output ->
-            input.copyTo(output)
+    val inputStream = {}.javaClass.getResourceAsStream("/bin/$folder/$finalName$extension") ?: return null
+
+    val workingDir = getAppDataDir("QuickYTD")
+    val targetFolder = File(workingDir, "py")
+    if (!targetFolder.exists()) {
+        targetFolder.mkdirs()
+    }
+    val targetFile = File(targetFolder, "$finalName$extension")
+
+    if(!targetFile.exists()){
+        inputStream.use { input ->
+            FileOutputStream(targetFile).use { output ->
+                input.copyTo(output)
+            }
         }
     }
-    return tempFile
+
+    return targetFile
 }
 
 fun getVideoDuration(videoFile: File): Double{
-    val executable = extractExecutablaByOS("FFprobe")
+    val executable = extractExecutableByOS("FFprobe")
 
     val process = ProcessBuilder(
         executable?.absolutePath, "-v", "error",
@@ -58,43 +95,100 @@ fun getVideoDuration(videoFile: File): Double{
     return durationStr.toDoubleOrNull() ?: 1.0
 }
 
-fun runFFmpegExe(
-    name: String,
-    audioFile: File,
-    videoFile: File,
-    outputFile: File
-){
-    val exeFile = extractExecutablaByOS(name) ?: return
-
-    val processBuilder = ProcessBuilder(exeFile.absolutePath)
-    processBuilder.redirectErrorStream(true)
-
-    println("starting process")
 
 
-    val process = ProcessBuilder(
-        exeFile.absolutePath,
-        "-i", videoFile.absolutePath,
-        "-i", audioFile.absolutePath,
-        "-c", "copy",
-        "-map", "0:v:0",
-        "-map", "1:a:0",
-        "-shortest",
-        "-progress", "-",
-        "-nostats", "-y",
-        outputFile.absolutePath
-    ).start()
+object FFmpegRunner {
 
-    val reader = BufferedReader(InputStreamReader(process.inputStream))
-
-    val output = mutableListOf<String>()
-    var line: String? = reader.readLine()
-    while (line != null) {
-        output.add(line)
-        line = reader.readLine()
+    private object FFmpegPath{
+        var isResource: Boolean = false
+        var path: String = ""
     }
 
+    fun runFFmpegExe(
+        name: String,
+        audioFile: File,
+        videoFile: File,
+        outputFile: File
+    ): Boolean{
+        //val exeFile = extractExecutablaByOS(name) ?: return false
 
-    process.waitFor()
+        val exeFile = if(FFmpegPath.isResource){
+            extractExecutableByOS(name) ?: return false
+        } else {
+            File(FFmpegPath.path)
+        }
 
+        val processBuilder = ProcessBuilder(exeFile.absolutePath)
+        processBuilder.redirectErrorStream(true)
+
+        println("starting process")
+        val process = ProcessBuilder(
+            exeFile.absolutePath,
+            "-i", videoFile.absolutePath,
+            "-i", audioFile.absolutePath,
+            "-c", "copy",
+            "-map", "0:v:0",
+            "-map", "1:a:0",
+            "-shortest",
+            "-progress", "-",
+            "-nostats", "-y",
+            outputFile.absolutePath
+        ).start()
+
+        val reader = BufferedReader(InputStreamReader(process.inputStream))
+
+        val output = mutableListOf<String>()
+        var line: String? = reader.readLine()
+        while (line != null) {
+            output.add(line)
+            line = reader.readLine()
+        }
+
+
+        process.waitFor()
+
+        return true
+
+    }
+
+    fun checkFFmpeg(): Boolean{
+
+        val workingDir = System.getProperty("user.dir")
+
+        val resourceFolder = when(getOS()){
+            "Windows" -> "win"
+            "Mac" -> "macos"
+            "Linux" -> "linux"
+            else -> return false
+        }
+
+        val extension = when(getOS()){
+            "Windows" -> ".exe"
+            "Mac" -> ""
+            "Linux" -> ""
+            else -> return false
+        }
+
+
+        val customBinary = File(workingDir, "ffmpeg" + extension)
+        if(customBinary.exists()){
+            FFmpegPath.isResource = false
+            FFmpegPath.path = customBinary.absolutePath
+
+            return true
+        } else {
+            val finalName = "ffmpeg_$resourceFolder"
+
+            val inputStream =
+                {}.javaClass.getResourceAsStream("/bin/$resourceFolder/$finalName$extension")
+                    ?: return false
+
+            inputStream.use { input ->
+                FFmpegPath.isResource = true
+                FFmpegPath.path = "/bin/$resourceFolder/$finalName$extension"
+                return@use
+            }
+            return true
+        }
+    }
 }

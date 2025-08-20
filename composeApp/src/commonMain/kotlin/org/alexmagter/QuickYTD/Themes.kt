@@ -7,22 +7,37 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
+
 object DarkTheme {
     val backgroundColor: Color = Color(25, 25, 25, 255)
     val secondaryBackgroundColor: Color = Color(20, 20, 20, 255)
     val dropdownShape = RoundedCornerShape(15.dp)
+    private val fieldBackgroundColor: Color = Color(115, 115, 115, 50)
 
     @Composable
     fun textFieldColors() = TextFieldDefaults.colors(
-        focusedContainerColor = Color.Transparent,
-        unfocusedContainerColor = Color.Transparent,
-        disabledContainerColor = Color.Transparent,
+        focusedContainerColor = fieldBackgroundColor,
+        unfocusedContainerColor = fieldBackgroundColor,
+        disabledContainerColor = fieldBackgroundColor,
+
         focusedTextColor = Color.White,
         unfocusedTextColor = Color.White,
+
         cursorColor = Color.White,
-        focusedIndicatorColor = Color.Gray,
-        unfocusedIndicatorColor = Color.Gray,
-        disabledIndicatorColor = Color.Red
+
+        focusedIndicatorColor = Color.LightGray,
+        unfocusedIndicatorColor = Color.LightGray,
+        disabledIndicatorColor = Color.Red,
+
+        focusedPlaceholderColor = Color.Gray,
+        unfocusedPlaceholderColor = Color.LightGray,
+        disabledPlaceholderColor = Color.DarkGray,
+        errorPlaceholderColor = Color.Red,
+
+        focusedLabelColor = Color.LightGray,
+        unfocusedLabelColor = Color.LightGray,
+        disabledLabelColor = Color.DarkGray,
+        errorLabelColor = Color.Red
     )
 
     @Composable

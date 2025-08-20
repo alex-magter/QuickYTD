@@ -18,10 +18,6 @@ android {
             // On Apple silicon, you can omit x86_64.
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
-
-
-
-
     }
 
     buildTypes {
@@ -55,13 +51,14 @@ dependencies {
 
 chaquopy {
     defaultConfig {
+        buildPython = listOf(/* Your Python installation */)
+
         pip {
-            install("pytubefix")
+            install("pytubefix==9.3.0")
             install("requests")
-            // Añade aquí otras dependencias que necesites
         }
 
-        version = "3.12"
+        version = "3.11"
     }
     productFlavors { }
     sourceSets { }

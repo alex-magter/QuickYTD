@@ -12,6 +12,11 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,9 +32,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.SaveAs
@@ -53,18 +63,37 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtMost
 import androidx.compose.ui.window.Dialog
+import androidx.navigation.NavController
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import quickytd.composeapp.generated.resources.Res
+import quickytd.composeapp.generated.resources.back
+import quickytd.composeapp.generated.resources.content_type
+import quickytd.composeapp.generated.resources.estimated_file_size
+import quickytd.composeapp.generated.resources.extension
+import quickytd.composeapp.generated.resources.quality
+import quickytd.composeapp.generated.resources.save_as
+import quickytd.composeapp.generated.resources.send_to_downloads
 import java.io.File
 
 
@@ -76,53 +105,58 @@ val roboto = getRoboto()
 )
 @Preview
 @Composable
-fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
-
-    val videoData = viewModel.videoData
-    val link = videoData.link
-    val thumbnail = remember(videoData.thumbnail) {
-        fileToBitmap(videoData.thumbnail)
-    }
-    val videoName: String = videoData.videoName.readText()
-    val videoChannel: String = videoData.channelName.readText()
-
-
-
+fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSaver: FileSaver) {
     MaterialTheme {
+
+        val video = remember { viewModel.video }
+        val link = remember { video.link }
+        val thumbnail by produceState<ImageBitmap?>(initialValue = null, key1 = video.getThumbnail()) {
+            value = withContext(Dispatchers.IO) { fileToBitmap(video.getThumbnail()) }
+        }
+        val videoName: String = video.getName().readText()
+        val videoChannel: String = video.getChannel().readText()
+
         var theme = "Dark"
 
         val density = LocalDensity.current
         val windowWidth = remember { mutableStateOf(900.dp) }
 
         var selectedType by remember { mutableStateOf<String>("") }
-        val contentTypes = getContentTypes(videoDataFile = videoData.fileData)
+        val contentTypes by produceState(initialValue = emptyList<String>(), key1 = video.getFileData()) {
+            value = withContext(Dispatchers.IO) { getContentTypes(video.getFileData()) }
+        }
 
         var selectedExtension by remember { mutableStateOf<String>("") }
-        var extensionTypes = getContentExtensions(videoDataFile = videoData.fileData, contentType = selectedType)
+        val extensionTypes by remember(selectedType, video.getFileData()) {
+            derivedStateOf {
+                getContentExtensions(video.getFileData(), selectedType)
+            }
+        }
 
         var selectedResolution by remember { mutableStateOf<String>("") }
-        var resolutions = getContentResolucions(videoDataFile = videoData.fileData, extension = selectedExtension)
+        val resolutions by remember(selectedExtension, video.getFileData()) {
+            derivedStateOf {
+                getContentResolutions(video.getFileData(), selectedExtension)
+            }
+        }
         var videoSize by remember { mutableStateOf<String>("") }
 
         var isVertical by remember { mutableStateOf(false) }
 
-        var progress by remember { mutableStateOf<Double>(0.0) }
+        var progress by remember { mutableDoubleStateOf(0.0) }
         var isDownloading by remember { mutableStateOf(false) }
 
         var isChoosingPath by remember { mutableStateOf(false) }
 
         var downloadTask by remember { mutableStateOf("Starting download...") }
-
         var downloadError by remember { mutableStateOf(false) }
         var isDownloadCompele by remember { mutableStateOf(false) }
         var isDownloadCancelled by remember { mutableStateOf(false) }
 
         LaunchedEffect(density) {
-            windowWidth.value = with(density) {
-                900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
-                    (windowWidth.value.value * 2f).dp
-                )
-            }
+            windowWidth.value = 900.dp.coerceAtMost( // Usa el menor entre 900.dp y 95% del ancho
+                (windowWidth.value.value * 2f).dp
+            )
         }
 
         Scaffold(
@@ -132,7 +166,6 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 .graphicsLayer()
                 .background(DarkTheme.backgroundColor)
         ) { innerPadding ->
-
 
             DownloadWindow(downloading = isDownloading,
                 label = downloadTask,
@@ -150,7 +183,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                 onCancelRequest = {
                     downloadTask = "Cancelling download..."
                     isDownloadCancelled = true
-                    cancelDownload()
+                    video.cancelDownload()
                 }
             )
 
@@ -166,22 +199,69 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         .align(Alignment.Center) // Centrado en el medio
                         .padding(16.dp) // Padding opcional dentro del contenido
                 ) {
+                    val scrollState = rememberScrollState() // mantiene la posición del scroll
 
                     Column (
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .verticalScroll(scrollState)
                     ) {
+                        BackButton {
+                            navController.popBackStack()
+                        }
                         Spacer( Modifier.height(3.dp) )
                         if(thumbnail != null) {
-                            Image(
-                                bitmap = thumbnail                            ,
-                                contentDescription = "TODO",
+                            Box(
                                 modifier = Modifier
+                                    .fillMaxWidth()
                                     .aspectRatio(16f/9f)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .fillMaxWidth(),
-                                alignment = Alignment.Center
-                            )
+
+                            ){
+                                Image(
+                                    bitmap = thumbnail!!,
+                                    contentDescription = "TODO",
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .fillMaxSize(),
+                                    alignment = Alignment.Center
+                                )
+
+                                var isThumbnailDownloaded by remember { mutableStateOf(false) }
+                                var isDownloadingThumbnail by remember { mutableStateOf(false) }
+
+                                Button(
+                                    onClick = {
+                                        video.downloadThumbnail(fileSaver.getDownloadsFolder()) {
+                                            isThumbnailDownloaded = true
+                                            isDownloadingThumbnail = false
+                                        }
+                                    },
+                                    enabled = !isDownloadingThumbnail,
+                                    modifier = Modifier
+                                        .align(Alignment.BottomEnd)
+                                        .padding(5.dp)
+                                        .size(50.dp)
+                                        .border(
+                                            width = 1.5.dp,                // Grosor del borde
+                                            color = Color.DarkGray,           // Color del borde
+                                            shape = RoundedCornerShape(15.dp) // Forma del borde
+                                        ),
+                                    shape = RoundedCornerShape(15.dp),
+                                    colors = DarkTheme.ButtonColors(!isDownloadingThumbnail),
+                                    contentPadding = PaddingValues(1.dp)
+                                ) {
+                                    if(isThumbnailDownloaded){
+                                        Icon(Icons.Filled.Check,
+                                            contentDescription = "Thumbnail Downloaded")
+                                    } else {
+                                        Icon(Icons.Filled.Download,
+                                            contentDescription = "Download thumbnail")
+                                    }
+                                }
+                            }
                         }
+
+                        Spacer( Modifier.height(6.dp) )
 
                         Text(
                             text = videoName ?: "",
@@ -204,15 +284,13 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         Spacer( Modifier.height(3.dp) )
 
                         Dropdown(
-                            label = "Choose content type",
+                            label = stringResource(Res.string.content_type),
                             elements = contentTypes,
                             selectedValue = selectedType,
                             onValueChange = {
                                 selectedType = it ?: ""
                                 selectedExtension = ""
                                 selectedResolution = ""
-
-                                extensionTypes = getContentExtensions(videoDataFile = videoData.fileData, contentType = selectedType)
                             }
                         )
 
@@ -222,13 +300,13 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         ){
                             Column {
                                 Dropdown(
-                                    label = "Choose extension",
+                                    label = stringResource(Res.string.extension),
                                     elements = extensionTypes,
                                     selectedValue = selectedExtension,
+                                    isOpenedByDefault = true,
                                     onValueChange = {
                                         selectedExtension = it ?: ""
                                         selectedResolution = ""
-                                        resolutions = getContentResolucions(videoDataFile = videoData.fileData, extension = selectedExtension)
                                     }
                                 )
 
@@ -238,15 +316,16 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
 
                                     Column {
                                         Dropdown(
-                                            label = "Choose quality",
+                                            label = stringResource(Res.string.quality),
                                             elements = resolutions,
-                                            selectedValue = selectedResolution
+                                            selectedValue = selectedResolution,
+                                            isOpenedByDefault = true
                                         ) {
                                             selectedResolution = it ?: ""
 
 
                                             videoSize = getSize(
-                                                videoDataFile = videoData.fileData,
+                                                videoDataFile = video.getFileData(),
                                                 contentType = selectedType,
                                                 extension = selectedExtension,
                                                 resolution = selectedResolution
@@ -273,7 +352,7 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
 
-                        fun onResult( successful: Boolean ){
+                        val onResult: (Boolean) -> Unit = { successful ->
                             isDownloadCompele = true
 
                             if(successful){
@@ -289,37 +368,31 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                             }
                         }
 
-                        fun onProgress(taskProgress: Double, task: String){
+                        val onProgress: (Double, String) -> Unit = { taskProgress, task ->
                             progress = taskProgress/100;
                             print(progress); print("\n")
                             downloadTask = task
                         }
 
+                        val onClick: () -> Unit = {
+                            isDownloading = true
+                            progress = 0.0
+
+                            val name = videoName
+
+                            video.extension = selectedExtension
+                            video.resolution = selectedResolution
+                            video.downloadType = selectedType
+
+                            video.download(onResult, onProgress)
+                        }
+
                         Button(
                             onClick = {
-                                isDownloading = true
-                                progress = 0.0
-
-                                val name = videoName
-
-                                download(
-                                    link = link,
-                                    downloadPath = fileSaver.getDownloadsFolder(),
-                                    filename = sanitizeFileName(name),
-                                    type = selectedType,
-                                    extension = selectedExtension,
-                                    resolution = selectedResolution,
-                                    savedAs = false,
-                                    onResult = { successful ->
-
-                                        onResult(successful)
-
-                                    },
-                                    onProgressChange = { taskProgress, task ->
-
-                                        onProgress(taskProgress, task)
-                                    }
-                                )
+                                video.downloadPath = fileSaver.getDownloadsFolder()
+                                video.filename = sanitizeFileName(videoName)
+                                video.isSavedAs = false
+                                onClick()
                             },
                             enabled = selectedResolution != "" && !isChoosingPath,
                             colors = DarkTheme.ButtonColors(selectedResolution != ""),
@@ -333,46 +406,29 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Send to downloads")
+                                Text(stringResource(Res.string.send_to_downloads))
                                 Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.Download, contentDescription = "Descargar")
+                                Icon(Icons.Filled.Download, contentDescription = "DownloadButton")
                             }
                         }
 
                         val scope = rememberCoroutineScope()
                         Button(
-
                             onClick = {
                                 isChoosingPath = true
 
                                 scope.launch {
-                                    fileSaver.selectFolder("${sanitizeFileName(videoName)}.$selectedExtension",
-                                        "audio/mp4") { stream, path, name ->
+                                    val mimetype = "${if(selectedType == "Audio") "audio" else "video"}/mp4"
+
+                                    fileSaver.selectFolder(
+                                        "${sanitizeFileName(videoName)}.$selectedExtension",
+                                        selectedExtension) { stream, path, name ->
                                         isChoosingPath = false
-                                        if(path != null && name != null){
-                                            isDownloading = true
-                                            progress = 0.0
-
-                                            println(path)
-
-                                            download(
-                                                link = link,
-                                                downloadPath = path,
-                                                filename = name,
-                                                type = selectedType,
-                                                extension = selectedExtension,
-                                                resolution = selectedResolution,
-                                                savedAs = true,
-                                                onProgressChange = { taskProgress, task ->
-
-                                                    onProgress(taskProgress, task)
-
-                                                },
-                                                onResult = { successful ->
-
-                                                    onResult(successful)
-                                                }
-                                            )
+                                        if(stream != null && name != null && path != null){
+                                            video.downloadPath = path
+                                            video.filename = sanitizeFileName(name)
+                                            video.isSavedAs = true
+                                            onClick()
                                         }
                                     }
                                 }
@@ -389,9 +445,9 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.Center
                             ) {
-                                Text("Save as")
+                                Text(stringResource(Res.string.save_as))
                                 Spacer(Modifier.width(4.dp))
-                                Icon(Icons.Filled.SaveAs, contentDescription = "Compartir")
+                                Icon(Icons.Filled.SaveAs, contentDescription = "Save as")
                             }
                         }
                     }
@@ -401,11 +457,41 @@ fun VideoPage(viewModel: SharedViewModel, fileSaver: FileSaver) {
     }
 }
 
+@Composable
+fun BackButton(
+    onClick: () -> Unit = {}
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isHovered by interactionSource.collectIsHoveredAsState()
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 8.dp, top = 8.dp, bottom = 8.dp) // opcional, para que respire
+            .clickable(onClick = onClick)
+            .hoverable(interactionSource = interactionSource)
+            .pointerHoverIcon(PointerIcon.Hand),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val color: () -> Color = { if (isHovered) Color.LightGray else Color.White }
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+            contentDescription = "Go back",
+            tint = color()
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+            text = stringResource(Res.string.back),
+            color = color(),
+        )
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Dropdown(label: String, elements: List<String>, selectedValue: String, onValueChange: (String?) -> Unit = { }){
+fun Dropdown(label: String, elements: List<String>, selectedValue: String, isOpenedByDefault: Boolean = false, onValueChange: (String?) -> Unit = { }){
 
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(isOpenedByDefault) }
 
     ExposedDropdownMenuBox(
         expanded = expanded,
@@ -422,7 +508,7 @@ fun Dropdown(label: String, elements: List<String>, selectedValue: String, onVal
             modifier = Modifier
                 .menuAnchor(),
             colors = DarkTheme.textFieldColors(),
-            shape = DarkTheme.dropdownShape
+            shape = DarkTheme.dropdownShape,
         )
 
 
@@ -452,7 +538,7 @@ fun FileSize(size: String, areFieldsFilled: Boolean) {
         exit = slideOutVertically(targetOffsetY = { -40 }) + shrinkOut( shrinkTowards = Alignment.Center )
     ) {
         Text(
-            text = "Estimated filesize: $size",
+            text = "${stringResource(Res.string.estimated_file_size)}: $size",
             color = Color.White,
             modifier = Modifier.padding(5.dp)
         )

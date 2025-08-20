@@ -10,9 +10,6 @@ import kotlinx.coroutines.CompletableDeferred
 import java.io.OutputStream
 
 actual class FileSaver (private val activity: ComponentActivity){
-
-
-
     actual fun getDownloadsFolder(): String {
         val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         return downloadsDir.absolutePath
@@ -22,8 +19,18 @@ actual class FileSaver (private val activity: ComponentActivity){
 
     private var continuation: CompletableDeferred<SaveAsResult?>? = null
 
-    private val createDocumentLauncher = activity.registerForActivityResult(
-        ActivityResultContracts.CreateDocument("*/*")
+    private val createMP4DocumentLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.CreateDocument("video/mp4")
+    ) { uri ->
+        val output = uri?.let {
+            activity.contentResolver.openOutputStream(it)
+        }
+        continuation?.complete(SaveAsResult(uri, output))
+        continuation = null
+    }
+
+    private val createM4ADocumentLauncher = activity.registerForActivityResult(
+        ActivityResultContracts.CreateDocument("audio/mp4")
     ) { uri ->
         val output = uri?.let {
             activity.contentResolver.openOutputStream(it)
@@ -44,7 +51,11 @@ actual class FileSaver (private val activity: ComponentActivity){
 
         continuation = CompletableDeferred()
 
-        createDocumentLauncher.launch(cleanedName)
+        if (mimeType == "m4a"){
+            createM4ADocumentLauncher.launch(cleanedName)
+        } else {
+            createMP4DocumentLauncher.launch(cleanedName)
+        }
 
         val result = continuation?.await()
 

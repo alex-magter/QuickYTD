@@ -19,7 +19,8 @@ def downloadAudio(url, ext, res, pathToDownload, filename):
     extension = "mp4" if ext == 'm4a' else 'webm'
     yt = YouTube(url,
     on_progress_callback=on_progress)
-    streams = yt.streams.filter(only_audio=True, file_extension=extension, abr=res).order_by("abr").desc()
+    streams = yt.streams
+    streams = streams.filter(only_audio=True, file_extension=extension, abr=res).order_by("abr").desc().get_default_audio_track()
 
     title = filename
     cleanTitle = re.sub(r'[<>:"/\\|?*\n¿]', '', title)
