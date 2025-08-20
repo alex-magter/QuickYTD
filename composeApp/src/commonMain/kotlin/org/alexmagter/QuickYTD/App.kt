@@ -180,7 +180,7 @@ fun App(navController: NavController, viewModel: SharedViewModel, sharedData: St
                         imeAction = ImeAction.Go
                     ),
                     keyboardActions = KeyboardActions(
-                        onDone = {
+                        onGo = {
                             searchVideo()
                         }
                     )

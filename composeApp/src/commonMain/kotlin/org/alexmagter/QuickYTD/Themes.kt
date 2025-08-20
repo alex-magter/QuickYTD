@@ -12,7 +12,7 @@ object DarkTheme {
     val backgroundColor: Color = Color(25, 25, 25, 255)
     val secondaryBackgroundColor: Color = Color(20, 20, 20, 255)
     val dropdownShape = RoundedCornerShape(15.dp)
-    private val fieldBackgroundColor: Color = Color(64, 64, 64, 50)
+    private val fieldBackgroundColor: Color = Color(115, 115, 115, 50)
 
     @Composable
     fun textFieldColors() = TextFieldDefaults.colors(

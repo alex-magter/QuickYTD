@@ -18,10 +18,6 @@ android {
             // On Apple silicon, you can omit x86_64.
             abiFilters += listOf("arm64-v8a", "x86_64")
         }
-
-
-
-
     }
 
     buildTypes {
@@ -55,12 +51,11 @@ dependencies {
 
 chaquopy {
     defaultConfig {
-        buildPython = listOf("C:\\Users\\alext\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe") // usa el Python que sabes que funcionaba antes
+        buildPython = listOf(/* Your Python installation */)
 
         pip {
             install("pytubefix==9.3.0")
             install("requests")
-            // Añade aquí otras dependencias que necesites
         }
 
         version = "3.11"
