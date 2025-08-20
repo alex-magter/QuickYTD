@@ -197,7 +197,7 @@ fun VideoPage(navController: NavController, viewModel: SharedViewModel, fileSave
                         .width(400.dp) // Ancho fijo para la zona de contenido
                         .fillMaxHeight() // Alto completo
                         .align(Alignment.Center) // Centrado en el medio
-                        .padding(16.dp) // Padding opcional dentro del contenido
+                        .padding(start = 16.dp, end = 16.dp, bottom = 16.dp, top = 7.dp) // Padding opcional dentro del contenido
                 ) {
                     val scrollState = rememberScrollState() // mantiene la posición del scroll
 
@@ -467,7 +467,7 @@ fun BackButton(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 8.dp, top = 8.dp, bottom = 8.dp) // opcional, para que respire
+            .padding(start = 8.dp, top = 8.dp, bottom = 13.dp)
             .clickable(onClick = onClick)
             .hoverable(interactionSource = interactionSource)
             .pointerHoverIcon(PointerIcon.Hand),
