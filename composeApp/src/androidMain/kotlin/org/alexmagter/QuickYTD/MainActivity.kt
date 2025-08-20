@@ -1,5 +1,6 @@
 package org.alexmagter.QuickYTD
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -16,11 +17,32 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val receivedIntent: Intent? = intent
+
+        if (receivedIntent != null && receivedIntent.action == Intent.ACTION_SEND) {
+            handleSharedText(receivedIntent)
+        }
+
         fileSaver = FileSaver(this)
 
 
         setContent {
             Navigation(fileSaver)
+        }
+    }
+
+    private fun handleSharedText(intent: Intent) {
+        val receivedType: String? = intent.type
+
+        if (receivedType == "text/plain") {
+            val sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)
+
+            if (sharedText != null) {
+                // Aquí procesas el texto recibido
+                // Por ejemplo, lo muestras en un TextView
+                // val textView = findViewById<TextView>(R.id.mi_texto_compartido)
+                // textView.text = sharedText
+            }
         }
     }
 }

@@ -26,7 +26,7 @@ enum class SearchScreen() {
 
 
 @Composable
-fun Navigation(fileSaver: FileSaver){
+fun Navigation(fileSaver: FileSaver, sharedData: String? = null){
     val navController = rememberNavController()
     val sharedViewModel: SharedViewModel = viewModel()
     val animationDurationMillis = 300
@@ -71,7 +71,7 @@ fun Navigation(fileSaver: FileSaver){
 
             ) {
             composable(route = SearchScreen.Start.name) {
-                App(navController, sharedViewModel)
+                App(navController, sharedViewModel, sharedData)
             }
 
             composable(route = SearchScreen.VideoPage.name) {

@@ -72,10 +72,10 @@ import quickytd.composeapp.generated.resources.search
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 @Preview
-fun App(navController: NavController, viewModel: SharedViewModel) {
+fun App(navController: NavController, viewModel: SharedViewModel, sharedData: String? = null) {
 
     MaterialTheme {
-        var link by remember { mutableStateOf("") }
+        var link by remember { mutableStateOf(sharedData ?: "") }
         var theme = "Dark"
         var buttonEnabled by remember { mutableStateOf(true) }
         var isLinkInvalid by remember { mutableStateOf(false) }
