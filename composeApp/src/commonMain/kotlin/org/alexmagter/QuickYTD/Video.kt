@@ -24,6 +24,8 @@ expect class Video(linkParam: String) {
         onProgressChange: (Double, String) -> Unit
     )
 
+    fun cancelDownload()
+
     fun downloadThumbnail(path: String, onResult: () -> Unit = {})
 
     companion object {
