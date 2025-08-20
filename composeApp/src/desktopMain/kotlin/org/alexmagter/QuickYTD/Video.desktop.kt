@@ -257,7 +257,7 @@ actual class Video actual constructor(private val linkParam: String) {
     }
 
     actual fun downloadThumbnail(path: String, onResult: () -> Unit){
-        val targetFile: File = File(path, "thumbnail.jpg")
+        val targetFile: File = File(path, "thumbnail_${sanitizeFileName(getName().readText())}.jpg")
 
         val source: Path = Paths.get(getThumbnail().absolutePath)
         val target: Path = Paths.get(targetFile.absolutePath)
