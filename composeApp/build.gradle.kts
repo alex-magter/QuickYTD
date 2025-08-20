@@ -26,12 +26,12 @@ kotlin {
     jvm("desktop") {
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21) // o JVM_11, o incluso JVM_21 si está disponible como enum
+            jvmTarget.set(JvmTarget.JVM_21)
         }
     }
 
     jvmToolchain { // Configura la toolchain para todos los targets JVM de Kotlin
-        languageVersion.set(JavaLanguageVersion.of(21)) // O 17, 21
+        languageVersion.set(JavaLanguageVersion.of(21))
     }
     
     sourceSets {
@@ -64,8 +64,6 @@ kotlin {
             implementation(compose.components.uiToolingPreview)
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
-            //implementation(libs.androidx.material3)
-            //implementation("androidx.compose.material3:material3-window-size-class:1.3.1")
             implementation(libs.navigation.compose)
             implementation(compose.materialIconsExtended)
             implementation(libs.kotlinx.coroutines.core)
@@ -74,7 +72,6 @@ kotlin {
         desktopMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            /*implementation(libs.kotlinx.coroutines.swing.v190)*/
         }
     }
 }
@@ -88,7 +85,7 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 3
-        versionName = "1.1.0"
+        versionName = "2.0.0"
     }
     packaging {
         resources {
@@ -115,22 +112,12 @@ android {
 
 dependencies {
     implementation(libs.androidx.compose.bom)
-    /*implementation(libs.androidx.navigation.compose)
-    implementation(libs.androidx.navigation.runtime.ktx)*/
-
-
-
-    //debugImplementation(compose.uiTooling)
 }
 
 tasks.named("desktopProcessResources", org.gradle.language.jvm.tasks.ProcessResources::class.java) {
-    // La tarea por defecto ya tiene como fuente src/desktopMain/resources.
-    // Solo necesitamos ajustar qué de esa fuente se incluye en la salida.
 
     val os = OperatingSystem.current()
 
-    // Definimos los patrones de exclusión para las carpetas de otros SOs.
-    // Estos patrones son relativos a la raíz de src/desktopMain/resources.
     val excludes = mutableListOf<String>()
     if (!os.isWindows) {
         excludes.add("bin/win/**")
@@ -141,21 +128,6 @@ tasks.named("desktopProcessResources", org.gradle.language.jvm.tasks.ProcessReso
     if (!os.isMacOsX) {
         excludes.add("bin/macos/**")
     }
-
-    // Aplicamos las exclusiones.
-    // Esto asegura que solo se copien los archivos comunes de src/desktopMain/resources
-    // y la carpeta específica del SO actual desde src/desktopMain/resources.
-    exclude(excludes)
-
-    // No necesitamos 'include' explícitos aquí si solo estamos excluyendo
-    // las carpetas de los otros SOs. Todo lo demás de src/desktopMain/resources
-    // (archivos en su raíz + la carpeta del SO actual + otras carpetas comunes) se incluirá.
-
-    // Por ejemplo, si estás en Windows:
-    // - Se excluye "linux/**" y "macos/**".
-    // - src/desktopMain/resources/commonFile.txt se incluye.
-    // - src/desktopMain/resources/windows/** se incluye.
-    // - src/desktopMain/resources/anotherDesktopCommonFolder/** se incluye.
 }
 
 compose.desktop {
@@ -167,7 +139,7 @@ compose.desktop {
 
             targetFormats(TargetFormat.Dmg, TargetFormat.Exe, TargetFormat.AppImage)
             packageName = "QuickYTD"
-            packageVersion = "1.1.0"
+            packageVersion = "2.0.0"
             vendor = "Alex_magter"
 
             val iconBaseDir = project.projectDir.resolve("src/desktopMain/resources/icons")
